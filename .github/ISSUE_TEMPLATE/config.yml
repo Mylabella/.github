@@ -1,0 +1,12 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Support and usage questions
+    url: https://github.com/Mylabella/.github/blob/main/SUPPORT.md
+    about: Find the correct channel before opening an issue.
+  - name: Security vulnerability
+    url: https://github.com/Mylabella/.github/blob/main/SECURITY.md
+    about: Do not report vulnerabilities publicly; follow the private reporting policy.
+  - name: Community conduct concern
+    url: https://github.com/Mylabella/.github/blob/main/CODE_OF_CONDUCT.md
+    about: Read the private reporting and enforcement process.
+

@@ -1,0 +1,66 @@
+name: Feature proposal
+description: Propose a concrete improvement to a Mylabella project
+title: "[Feature]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Start with the problem and desired outcome. A proposal is easier to assess when it is not tied prematurely to one implementation.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and pull requests for the same proposal.
+          required: true
+        - label: I checked that the project is active and the proposal fits its stated scope.
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or opportunity
+      description: Who is affected, in what situation, and what cannot be done well today?
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+      description: Describe observable success without prescribing implementation details.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed approach
+      description: Explain an approach if you have one, including important boundaries.
+    validations:
+      required: false
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and workarounds
+      description: What have you tried, and why is it insufficient?
+    validations:
+      required: false
+  - type: textarea
+    id: impact
+    attributes:
+      label: Security, compatibility, and operational impact
+      description: Note data, privacy, dependencies, migration, performance, hardware, or maintenance implications.
+    validations:
+      required: false
+  - type: dropdown
+    id: contribution
+    attributes:
+      label: Contribution
+      description: Would you like to help move this proposal forward?
+      options:
+        - I can implement it
+        - I can help test or document it
+        - I can provide domain feedback
+        - I cannot contribute implementation
+        - Unsure
+    validations:
+      required: true
+
