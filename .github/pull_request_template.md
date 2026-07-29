@@ -1,28 +1,29 @@
 ## Outcome
 
-<!-- What user or operational outcome does this change deliver? -->
+<!-- What user, contributor, or operational outcome does this change deliver? -->
 
 ## Why
 
-<!-- Why is this change necessary now? -->
+<!-- Why is this change necessary now? Link relevant issues or proposals. -->
 
 ## Design
 
-<!-- Important choices, boundaries, and alternatives. -->
+<!-- Important choices, boundaries, and alternatives considered. -->
 
 ## Verification
 
-<!-- Commands, tests, and observed results. -->
+<!-- Commands, tests, environments, and observed results. -->
 
 ## Impact
 
-- [ ] Tests added or updated
-- [ ] Documentation updated, or no documentation impact
+- [ ] Tests added or updated, or the reason they are unnecessary is documented
+- [ ] Documentation updated, or there is no documentation impact
 - [ ] Contracts remain compatible, or migration is documented
-- [ ] No dependency added, or dependency justified below
-- [ ] No security impact, or threat and mitigation documented
-- [ ] No database change, or migration is backward-compatible
-- [ ] Rollback and operational impact understood
+- [ ] No dependency added, or each dependency is justified below
+- [ ] No security or privacy impact, or threats and mitigations are documented
+- [ ] No database change, or the migration is backward-compatible
+- [ ] Rollback and operational impact are understood
+- [ ] I have read and verified every change submitted here
 
 ## Dependencies
 
@@ -31,3 +32,4 @@
 ## Risks and rollback
 
 <!-- Residual risks and how to restore the previous behavior. -->
+

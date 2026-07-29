@@ -1,0 +1,81 @@
+name: Bug report
+description: Report a reproducible defect in a Mylabella project
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a problem. Do not include credentials, personal data, private URLs, customer information, or security vulnerabilities. Report vulnerabilities privately through the repository Security tab.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched open and closed issues for the same problem.
+          required: true
+        - label: I read the repository documentation and support status.
+          required: true
+        - label: This report does not disclose a suspected security vulnerability or sensitive data.
+          required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: Problem
+      description: Describe what went wrong and why it matters.
+      placeholder: A concise description of the defect and its impact.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Minimal reproduction
+      description: Provide the smallest safe sequence that reproduces the problem.
+      placeholder: |
+        1. Configure ...
+        2. Run ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should have happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include relevant version, commit, operating system, runtime, hardware, and configuration details.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Logs or evidence
+      description: Add sanitized logs, screenshots, or traces. Remove secrets and personal or proprietary data.
+      render: shell
+    validations:
+      required: false
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impact
+      options:
+        - Blocks normal use
+        - Breaks an important workflow
+        - Causes degraded or confusing behavior
+        - Minor defect
+        - Unsure
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add workarounds, recent changes, or other context that may help.
+    validations:
+      required: false
+
