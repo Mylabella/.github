@@ -42,6 +42,26 @@ never disclose suspected vulnerabilities publicly.
 Release branches are not part of the default workflow. Create one only when a
 supported version must be stabilized or maintained independently.
 
+## Do not stack pull requests
+
+Never open a pull request whose base is another open pull request's branch.
+Either make the two changes independent of each other, or finish and merge the
+first before opening the second.
+
+Stacking looks efficient and behaves badly under the workflow this document
+already requires. Squash merge replaces the branch's commits with one new
+commit on `main`, so when the base pull request merges, the stacked one is left
+pointing at a branch that no longer leads anywhere: **its changes silently do
+not reach `main`, and nothing reports this.** It has happened here, and it cost
+a recovery pull request to notice and undo.
+
+Renaming a branch that has an open pull request is the same class of mistake and
+can close the pull request outright. Rename before opening it, or open a new one.
+
+If a change genuinely depends on another, say so in the description and wait.
+Sequential is slower than stacked by exactly the review time, and faster than
+stacked by however long it takes to discover that half the work never landed.
+
 ## Pull requests
 
 Keep pull requests focused and reviewable. Fewer than 400 changed production
