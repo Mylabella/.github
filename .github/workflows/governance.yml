@@ -35,3 +35,33 @@ jobs:
         # A gate nobody has verified is a gate nobody should trust. These tests
         # already caught one pattern that silently matched nothing.
         run: python3 -m unittest discover -s tests
+
+      - name: Check the branch name
+        # CONTRIBUTING allows feature/, fix/ and chore/ and nothing else. The
+        # obvious home for this is a ruleset, and that was tried: GitHub accepts
+        # a branch_name_pattern rule, reports it as applying to the branch, and
+        # then does not enforce it, because metadata restrictions need an
+        # Enterprise plan. A branch called BadName_2 pushed cleanly with the rule
+        # active. A gate that cannot fail is worse than no gate, because it gets
+        # trusted, so the rule lives here instead where it demonstrably fails.
+        #
+        # This does not prevent the branch from being created. It prevents it
+        # from being merged, which is the point at which the name becomes
+        # permanent.
+        if: github.event_name == 'pull_request'
+        env:
+          BRANCH: ${{ github.head_ref }}
+        run: |
+          case "$BRANCH" in
+            dependabot/*)
+              echo "$BRANCH is Dependabot's to name" ;;
+            *)
+              if echo "$BRANCH" | grep -qE '^(feature|fix|chore)/[a-z0-9][a-z0-9-]*$'; then
+                echo "$BRANCH is a permitted branch name"
+              else
+                echo "::error::'$BRANCH' is not a permitted branch name."
+                echo "Use feature/<description>, fix/<description> or chore/<description>,"
+                echo "lowercase with hyphens. Rename the branch and the pull request follows it."
+                exit 1
+              fi ;;
+          esac
