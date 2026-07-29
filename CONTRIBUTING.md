@@ -25,14 +25,18 @@ never disclose suspected vulnerabilities publicly.
 
 ## Branching
 
-- `main` is protected and must remain releasable.
+- `main` must remain releasable at all times. Protect it wherever the plan
+  allows; where branch protection is unavailable, a repository that deploys from
+  `main` is expected to refuse a commit that no reviewed pull request produced.
 - Create a short-lived `feature/<description>`, `fix/<description>`, or
-  `chore/<description>` branch.
+  `chore/<description>` branch. Those three are the entire list. A tool's
+  default branch name is not an exception to it, and neither is an agent's.
+- Never push to `main`, including while working alone.
 - Open a pull request for every change, including changes made while working
   alone.
 - Update the branch before merge when required by repository rules.
-- Prefer squash merge. The pull-request title becomes the durable commit
-  message.
+- Use squash merge. The pull-request title becomes the durable commit message,
+  so write it as one.
 - Delete merged branches.
 
 Release branches are not part of the default workflow. Create one only when a
@@ -62,10 +66,14 @@ author remains accountable for the entire contribution and must:
 - understand and review every submitted change;
 - verify behavior with appropriate tests or direct observation;
 - check licenses, attribution, privacy, and security implications;
-- disclose significant AI assistance in the pull request when it affects review
-  or provenance;
 - never submit secrets, confidential data, or material they are not permitted
   to share to an external model or service.
+
+Do not attribute authorship to a tool. No co-author trailer, no generated-with
+footer, and no standing disclosure section in the pull-request body: under squash
+merge that body becomes the commit message, so a line that is true of every
+change would be recorded forever on every change while informing nobody. The
+accountability is the point, and the checklist carries it.
 
 Generated output is evidence to inspect, not proof that a change is correct.
 
@@ -93,6 +101,13 @@ Deploy only a component whose version changed.
 Publishing a GitHub Release is the production approval event. A release
 promotes an already-built immutable artifact; it must not rebuild different
 bytes.
+
+That applies to anything with a build to choose between. A repository that
+describes infrastructure rather than producing an artifact has nothing to
+version, and converges from `main` instead: there, merging is the approval
+event, and the repository records that in its own ADRs. Applications are
+released because a release is a decision about a build; shared services are
+converged because there is no build to decide about.
 
 Each production repository documents its delivery and rollback process under
 `docs/`.

@@ -23,15 +23,11 @@
 - [ ] No security or privacy impact, or threats and mitigations are documented
 - [ ] No database change, or the migration is backward-compatible
 - [ ] Rollback and operational impact are understood
-- [ ] AI-assisted work has been reviewed and verified by the human author
+- [ ] I have read and verified every change submitted here
 
 ## Dependencies
 
 <!-- For each new dependency: value, alternatives, maintenance, security, license, and removal path. -->
-
-## AI assistance
-
-<!-- Describe significant AI-generated or AI-assisted code, tests, research, or documentation. Write "None" when not applicable. Do not include prompts containing sensitive data. -->
 
 ## Risks and rollback
 

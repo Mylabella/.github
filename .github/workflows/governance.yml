@@ -1,0 +1,37 @@
+name: Governance
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: governance-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  governance:
+    name: governance
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check the published content
+        # This repository is public and sets policy for private ones. Its
+        # strictest rule was also the only one with no check behind it, which
+        # made it the rule with the worst failure mode and the least protection.
+        run: python3 tools/quality/verify_public_content.py
+
+      - name: Test the check itself
+        # A gate nobody has verified is a gate nobody should trust. These tests
+        # already caught one pattern that silently matched nothing.
+        run: python3 -m unittest discover -s tests

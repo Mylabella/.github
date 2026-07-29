@@ -38,7 +38,8 @@ describes its own maturity and support level.
 - Prefer understandable systems over unnecessary complexity.
 - Keep humans accountable for AI-assisted decisions and changes.
 - Treat privacy, security, reversibility, and documentation as design inputs.
-- Make public work reusable under an explicit license.
+- State the licence of published work explicitly, and never ship altered licence
+  text to imply terms that were not granted.
 
 ## Contributing
 

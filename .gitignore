@@ -1,0 +1,17 @@
+# Byte-code from running the content check locally.
+__pycache__/
+*.py[cod]
+
+# Nothing here should ever hold a secret, but the rule is cheap and the
+# consequence of being wrong in a public repository is not.
+.env
+.env.*
+*.key
+*.pem
+secrets/
+
+# Editors and operating systems.
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
