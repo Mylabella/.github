@@ -1,0 +1,11 @@
+version: 2
+
+updates:
+  # The governance workflow pins its action by commit SHA, which is what makes
+  # it immutable and also what makes it go stale silently. This turns the
+  # update into a reviewed pull request instead of a decision nobody makes.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
