@@ -67,6 +67,43 @@ class Accepts(unittest.TestCase):
                 self.assertEqual([], reasons(text))
 
 
+class UnfinishedText(unittest.TestCase):
+    """The one defect that was here, published, while every check was green."""
+
+    def test_the_line_that_was_actually_committed(self) -> None:
+        # GOVERNANCE.md carried this in the middle of a sentence about
+        # maintainer responsibilities. Every pattern in this file looked for
+        # something that should not be published; none looked for text that was
+        # never finished.
+        published = (
+            "- documenting project-specific decisions and ex"
+            "…247 tokens truncated…resolved conflict of"
+        )
+        self.assertTrue(any("never finished" in r for r in reasons(published)))
+
+    def test_the_other_shapes_a_tool_leaves_behind(self) -> None:
+        for artifact in (
+            "... [12 lines truncated]",
+            "[truncated]",
+            "[... 40 tokens truncated",
+            "<<<<<<< HEAD",
+            ">>>>>>> origin/main",
+        ):
+            with self.subTest(artifact=artifact):
+                self.assertTrue(any("never finished" in r for r in reasons(artifact)))
+
+    def test_prose_about_truncation_is_left_alone(self) -> None:
+        # A check that cries wolf gets disabled, and these documents are
+        # allowed to discuss the subject.
+        for innocent in (
+            "Long outputs are truncated rather than dropped.",
+            "The token budget is 4000 tokens per request.",
+            "Use ======= as a section divider in a code sample when it is indented.",
+        ):
+            with self.subTest(innocent=innocent):
+                self.assertEqual([], [r for r in reasons(innocent) if "never finished" in r])
+
+
 class RealRepository(unittest.TestCase):
     def test_the_published_files_pass(self) -> None:
         """The rule is only credible if what is already here obeys it."""

@@ -23,7 +23,8 @@ Maintainers are responsible for:
 
 - the repository roadmap, architecture, review, releases, and support status;
 - protecting user data and production systems;
-- documenting project-specific decisions and ex…247 tokens truncated…resolved conflict of
+- documenting project-specific decisions and the exceptions granted to them;
+- escalating to the organization owner when an unresolved conflict of
   interest makes impartial review unreasonable.
 
 There is currently no voting body or guaranteed appeal panel. When consensus is
