@@ -76,6 +76,25 @@ CHECKS: tuple[tuple[re.Pattern[str], str], ...] = (
         re.compile(r"\b[a-z_][a-z0-9_-]*@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"),
         "looks like an account on a specific host",
     ),
+    (
+        # GOVERNANCE.md carried "…247 tokens truncated…" in the middle of a
+        # sentence, in the public repository, for as long as this file has
+        # existed — and every check here was green on it, because they all look
+        # for things that should not be published rather than for evidence that
+        # the text was never finished.
+        #
+        # Two sentences fused into one is not something a reader reports; it is
+        # something a reader assumes they misread. So the machine says it.
+        re.compile(
+            r"…\s*\d+\s+tokens?\s+truncated\s*…"
+            r"|\[\s*(?:\.\.\.|…)?\s*\d+\s+(?:lines?|tokens?|chars?|characters?)\s+truncated"
+            r"|\.\.\.\s*\[\s*truncated"
+            r"|\[truncated\]"
+            r"|<<<<<<<\s|>>>>>>>\s|^=======$",
+            re.IGNORECASE | re.MULTILINE,
+        ),
+        "carries a truncation or merge-conflict marker: the text was never finished",
+    ),
 )
 
 
