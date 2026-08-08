@@ -23,7 +23,8 @@
 - [ ] No security or privacy impact, or threats and mitigations are documented
 - [ ] No database change, or the migration is backward-compatible
 - [ ] Rollback and operational impact are understood
-- [ ] I have read and verified every change submitted here
+- [ ] Nothing is left dead: what this change stops using, it removes
+- [ ] Backend and frontend match, or a `parity-debt` issue records what does not
 
 ## Dependencies
 
