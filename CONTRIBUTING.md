@@ -62,10 +62,71 @@ If a change genuinely depends on another, say so in the description and wait.
 Sequential is slower than stacked by exactly the review time, and faster than
 stacked by however long it takes to discover that half the work never landed.
 
+## Who merges
+
+An author may merge their own pull request when every blocking gate is green and
+the change is under 400 hand-written lines. Above that line, or on any of these
+triggers, stop and ask the maintainer instead of deciding:
+
+- a change to a published contract, or a response field removed or narrowed;
+- a migration that removes or narrows anything a running previous version reads;
+- a new secret, or a new environment variable read at runtime;
+- a change to a workflow's `permissions:` or `secrets:` block;
+- a new externally reachable route, or any change on an authentication or
+  authorization path;
+- a new direct dependency;
+- a test deleted, skipped, or marked expected-to-fail.
+
+The boundary is the measurement, not the identity. A rule that says the
+maintainer merges is satisfied by every merge the maintainer performs, including
+the ones nobody read; a size limit and a trigger list can each be checked.
+
+For the same reason this project does not ask a contributor to attest that they
+reviewed their own work. An attestation written by the same party that wrote the
+change records nothing, and a file full of them is worse than an empty one,
+because it reads as evidence.
+
+## Dead code
+
+Remove what is no longer used, in the change that stops using it. Do not leave a
+commented-out block, an unreferenced function, a module nothing imports, a table
+nothing reads, a placeholder never filled, or a document whose claims have become
+false.
+
+A deterministic check enforces the part a tool can prove — unused imports, unused
+locals, unused arguments, commented-out code, unused TypeScript locals and
+parameters — and it blocks.
+
+What a tool can only guess — a module with no importer outside its own test, an
+endpoint with no caller, a table with no reader — belongs in the repository's
+dead-code inventory, and every entry carries a date. The date is the point: an
+entry without a deadline is abandonment with better manners. The repository fails
+when a date passes.
+
+Test coverage does not answer this question. A module with its own passing test
+suite and no production caller is fully covered and entirely dead.
+
+## Backend and frontend change together
+
+A change to one side carries the other side in the same pull request. Adding an
+endpoint means adding its caller; removing a response field means removing its
+reader; adding a value to a vocabulary means adding the label that renders it.
+
+Where a generated client exists, the generation is the enforcement, and the
+generated file is never edited by hand.
+
+Landing one side alone is permitted only when the maintainer says so explicitly,
+in that pull request. It is then recorded as an open issue labelled
+`parity-debt` stating what is missing, on which side, and the date by which it
+closes. A workflow reads those issues, reports them on every pull request, and
+fails once one is past its date. The circle is closed by closing the issue, never
+by merging the pull request that opened it.
+
 ## Pull requests
 
-Keep pull requests focused and reviewable. Fewer than 400 changed production
-lines is a useful target, not an automatic limit.
+Keep pull requests focused and reviewable. A pull request over 400 hand-written
+lines is refused; lockfiles, generated clients, and fixtures do not count towards
+that number.
 
 Every pull request must explain:
 
