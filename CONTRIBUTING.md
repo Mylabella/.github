@@ -65,7 +65,7 @@ stacked by however long it takes to discover that half the work never landed.
 ## Who merges
 
 An author may merge their own pull request when every blocking gate is green and
-the change is under 400 hand-written lines. Above that line, or on any of these
+the change is under 1000 hand-written lines. Above that line, or on any of these
 triggers, stop and ask the maintainer instead of deciding:
 
 - a change to a published contract, or a response field removed or narrowed;
@@ -124,7 +124,7 @@ by merging the pull request that opened it.
 
 ## Pull requests
 
-Keep pull requests focused and reviewable. A pull request over 400 hand-written
+Keep pull requests focused and reviewable. A pull request over 1000 hand-written
 lines is refused; lockfiles, generated clients, and fixtures do not count towards
 that number.
 
