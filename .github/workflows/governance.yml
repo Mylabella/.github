@@ -19,8 +19,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
+    # Every gate below carries an `if:` naming cancelled(), because a step
+    # without one carries an implicit success() and is therefore skipped by any
+    # earlier failure. These gates are independent objections: a run that stops
+    # at the first one reports one objection per push, and in the summary a
+    # skipped step and a passing step look alike, so a check that never started
+    # reads as a check that agreed.
+    #
+    # `!cancelled()` and not `always()`: cancel-in-progress is set above, and
+    # under always() a job already replaced by a newer push would keep working.
+    # Real dependencies are not erased by this, they are declared by name with
+    # `steps.<id>.outcome == 'success'`. The verifier refuses a gate step that
+    # omits the condition, reading each step separately.
     steps:
       - name: Check out repository
+        id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -29,11 +42,20 @@ jobs:
         # This repository is public and sets policy for private ones. Its
         # strictest rule was also the only one with no check behind it, which
         # made it the rule with the worst failure mode and the least protection.
+        #
+        # It reads the tree, so the checkout is a real dependency and is named.
+        id: public-content
+        if: ${{ !cancelled() && steps.checkout.outcome == 'success' }}
         run: python3 tools/quality/verify_public_content.py
 
       - name: Test the check itself
         # A gate nobody has verified is a gate nobody should trust. These tests
         # already caught one pattern that silently matched nothing.
+        #
+        # Same dependency, and no dependency on the gate above: the tests are a
+        # separate objection and must be heard when the content check fails.
+        id: verifier-tests
+        if: ${{ !cancelled() && steps.checkout.outcome == 'success' }}
         run: python3 -m unittest discover -s tests
 
       - name: Check the branch name
@@ -48,7 +70,13 @@ jobs:
         # This does not prevent the branch from being created. It prevents it
         # from being merged, which is the point at which the name becomes
         # permanent.
-        if: github.event_name == 'pull_request'
+        #
+        # The checkout is deliberately absent from the condition: this gate
+        # reads an event field and no file, so it is the one gate that can still
+        # speak when the checkout itself failed. Declaring a dependency it does
+        # not have would silence it for nothing.
+        id: branch-name
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
         env:
           BRANCH: ${{ github.head_ref }}
         run: |

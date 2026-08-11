@@ -86,6 +86,38 @@ reviewed their own work. An attestation written by the same party that wrote the
 change records nothing, and a file full of them is worse than an empty one,
 because it reads as evidence.
 
+## Every gate speaks on every run
+
+A workflow step with no `if:` carries an implicit `success()`, so it is skipped
+as soon as an earlier step has failed. For a build that is correct. For a series
+of quality gates it is not: gates are independent objections, and a run that
+stops at the first one reports one objection per push. The summary is the worse
+half of that — a skipped step and a passing step look alike there, so a check
+that never started reads as a check that agreed.
+
+In every workflow triggered by `pull_request`, a step that runs a gate therefore
+carries `if: ${{ !cancelled() }}`. Not `always()`: these workflows cancel a run
+that a newer push has superseded, and under `always()` the replaced job keeps
+working.
+
+Real dependencies are not erased by this. They are declared by name rather than
+inherited: give the producing step an `id:`, and condition the steps that need it
+with `&& steps.<id>.outcome == 'success'`. The checkout is a real dependency of
+every gate that reads the tree — without it a failed checkout produces one red
+gate per missing file and nothing that names the cause, which is the same
+deception in a mirror. A lockfile check is the instructive exception: tie it to
+the package manager's setup and not to the install, because a stale lockfile
+fails the install as well, and that is precisely the run where the lockfile gate
+is the only one that can say why.
+
+Release and deploy workflows are out of scope. There the sequence is the point,
+and stopping at the first failure is correct.
+
+Each repository enforces this in its own verifier, and the verifier reads every
+step separately. A check that reads the workflow as one string finds a
+`cancelled()` belonging to some other step and passes on exactly the state the
+rule exists to refuse.
+
 ## Dead code
 
 Remove what is no longer used, in the change that stops using it. Do not leave a

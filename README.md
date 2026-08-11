@@ -17,7 +17,7 @@ organization repositories that do not provide a local version.
 | [`.github/ISSUE_TEMPLATE/`](.github/ISSUE_TEMPLATE/) | Default bug and feature forms |
 | [`.github/pull_request_template.md`](.github/pull_request_template.md) | Default pull-request body |
 | [`docs/benchmark.md`](docs/benchmark.md) | Organizations and practices used as benchmarks |
-| [`tools/quality/`](tools/quality/) | The check that keeps the content rule honest |
+| [`tools/quality/`](tools/quality/) | The check that keeps the content rule honest, and the one that keeps the workflow able to report it |
 
 This repository publishes no `LICENSE`. The one proposed alongside these files
 had the Apache-2.0 appendix missing and one clause reworded, and altered licence
