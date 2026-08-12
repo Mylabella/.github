@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
-    # Every gate below carries an `if:` naming cancelled(), because a step
+    # Every step below carries an `if:` naming cancelled(), because a step
     # without one carries an implicit success() and is therefore skipped by any
     # earlier failure. These gates are independent objections: a run that stops
     # at the first one reports one objection per push, and in the summary a
@@ -29,8 +29,14 @@ jobs:
     # `!cancelled()` and not `always()`: cancel-in-progress is set above, and
     # under always() a job already replaced by a newer push would keep working.
     # Real dependencies are not erased by this, they are declared by name with
-    # `steps.<id>.outcome == 'success'`. The verifier refuses a gate step that
-    # omits the condition, reading each step separately.
+    # `steps.<id>.outcome == 'success'`. The verifier refuses a step that omits
+    # the condition, reading each step separately.
+    #
+    # "Every step" and not "every gate step" is the rule as of C2: a step is in
+    # scope when it has a `run:` key, plus any `uses:` step another step names as
+    # a dependency. The checkout is the exception here, and only because it is
+    # first — nothing precedes it that could skip it. Put a step above it and it
+    # comes into scope, which is what makes the exemption safe to grant.
     steps:
       - name: Check out repository
         id: checkout

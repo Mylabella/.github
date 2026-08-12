@@ -95,20 +95,35 @@ stops at the first one reports one objection per push. The summary is the worse
 half of that — a skipped step and a passing step look alike there, so a check
 that never started reads as a check that agreed.
 
-In every workflow triggered by `pull_request`, a step that runs a gate therefore
-carries `if: ${{ !cancelled() }}`. Not `always()`: these workflows cancel a run
-that a newer push has superseded, and under `always()` the replaced job keeps
-working.
+In every workflow triggered by `pull_request`, a step that could be silenced this
+way therefore carries `if: ${{ !cancelled() }}`. Not `always()`: these workflows
+cancel a run that a newer push has superseded, and under `always()` the replaced
+job keeps working.
 
-Real dependencies are not erased by this. They are declared by name rather than
-inherited: give the producing step an `id:`, and condition the steps that need it
-with `&& steps.<id>.outcome == 'success'`. The checkout is a real dependency of
-every gate that reads the tree — without it a failed checkout produces one red
-gate per missing file and nothing that names the cause, which is the same
-deception in a mirror. A lockfile check is the instructive exception: tie it to
-the package manager's setup and not to the install, because a stale lockfile
-fails the install as well, and that is precisely the run where the lockfile gate
-is the only one that can say why.
+Which steps those are is one sentence, and it is the same sentence in every
+repository: **a step runs a gate when it runs a script — when it has a `run:`
+key** — and a `uses:` step joins it when another step names it as a dependency,
+unless it is the job's first step.
+
+That is wider than it first sounds, on purpose. The earlier wording asked only
+for the steps that run a named gate, which left every step those gates stand on
+uncovered: the toolchain install, the dependency sync, the step that runs the
+advisory list. A setup step that stops at the first red takes the gates behind it
+down with it — they are conditioned on its outcome, and a skipped dependency
+skips them just as silently as no condition at all. An action nothing depends on
+is left out because it silences nothing, and the job's first step is left out
+because nothing precedes it; that second exemption is about position, so it
+expires by itself the moment a step is put above it.
+
+Real dependencies are not erased by any of this. They are declared by name rather
+than inherited: give the producing step an `id:`, and condition the steps that
+need it with `&& steps.<id>.outcome == 'success'`. Bind each step to the least it
+truly needs. The checkout is a real dependency of every gate that reads the tree —
+without it a failed checkout produces one red gate per missing file and nothing
+that names the cause, which is the same deception in a mirror. A lockfile check is
+the instructive exception: tie it to the package manager's setup and not to the
+install, because a stale lockfile fails the install as well, and that is precisely
+the run where the lockfile gate is the only one that can say why.
 
 Release and deploy workflows are out of scope. There the sequence is the point,
 and stopping at the first failure is correct.
@@ -117,6 +132,13 @@ Each repository enforces this in its own verifier, and the verifier reads every
 step separately. A check that reads the workflow as one string finds a
 `cancelled()` belonging to some other step and passes on exactly the state the
 rule exists to refuse.
+
+The verifier also refuses a workflow it cannot read. A parser that shrugs at an
+unfamiliar construct returns an empty document, an empty document has no steps,
+and a file with no steps is a file with nothing to complain about — the same
+absence-read-as-consent, one level up. So an unknown construct stops the check by
+name, with the line and what to do about it, rather than quietly covering one
+file fewer than it did yesterday.
 
 ## Dead code
 
