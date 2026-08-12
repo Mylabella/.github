@@ -22,6 +22,11 @@ Three things are being asserted, and they are not the same thing:
     and an empty document is a file with no steps, and a file with no steps is a
     file with nothing to complain about;
 
+  - the perimeter is the jobs a pull request can reach — `JobPerimeter`. A job
+    a pull request can never start silences nothing on one, so it is out; and
+    every job condition this code cannot decide is in, because an exemption
+    nobody can evaluate would be an opt-out anyone could write in one line;
+
   - and the two above are asserted about **every workflow file on disk** —
     `TheRealWorkflows`. The previous version of that class iterated over
     whatever the parser returned, so a file the parser could not read produced
@@ -863,6 +868,198 @@ class GateStepConditions(unittest.TestCase):
         self.assertIn("Test the check itself", errors[0])
 
 
+class JobPerimeter(unittest.TestCase):
+    """D1: the rule applies to the jobs a pull request can actually run.
+
+    A job GitHub will never start on a pull request silences nothing on one, and
+    `publish` — build, then read the digest the image will report, then record
+    it — is the case where the order is the point and stopping at the first
+    failure is correct. That exemption is also the obvious way to escape the
+    rule, so half of these tests are about the exemption *not* being granted:
+    a condition this code cannot judge leaves the job exactly where it was.
+
+    This repository has no such job — its one workflow has one job with no `if:`
+    of its own, so D1 changes nothing about what is checked here today. The
+    tests are here anyway, and are the same tests as in the four siblings,
+    because the function is in the shared block: a copy nobody exercises is a
+    copy free to rot, and this is the repository whose registry is empty and
+    which therefore leans hardest on its tests.
+    """
+
+    def workflow(self, condition: str) -> str:
+        """A push-only job whose steps carry no conditions at all.
+
+        Two `run:` steps, so the sequence is real: the second reads what the
+        first wrote, which is why `!cancelled()` on it would be wrong rather
+        than merely redundant.
+        """
+        return (
+            "on:\n"
+            "  pull_request:\n"
+            "  push:\n"
+            "    branches:\n"
+            "      - main\n"
+            "jobs:\n"
+            "  publish:\n"
+            f"{condition}"
+            "    steps:\n"
+            "      - name: Check out\n"
+            "        uses: actions/checkout@abc\n"
+            "      - name: Build and push the image\n"
+            "        run: docker buildx build --push .\n"
+            "      - name: Record the digest\n"
+            "        run: echo $DIGEST >> digests.txt\n"
+        )
+
+    def test_a_push_only_job_is_out_of_scope(self) -> None:
+        text = self.workflow(
+            "    if: github.event_name == 'push' && github.ref == 'refs/heads/main'\n"
+        )
+        self.assertEqual([], condition_errors({"ci.yml": text}))
+
+    def test_the_same_job_without_that_condition_is_in_scope(self) -> None:
+        """The break that proves the test above is testing the condition.
+
+        Same file, same steps, only the job's `if:` gone — and both unconditioned
+        `run:` steps are reported.
+        """
+        errors = condition_errors({"ci.yml": self.workflow("")})
+        self.assertEqual(2, len(errors), errors)
+        self.assertTrue(any("Record the digest" in e for e in errors), errors)
+
+    def test_not_pull_request_is_the_other_readable_form(self) -> None:
+        text = self.workflow("    if: ${{ github.event_name != 'pull_request' }}\n")
+        self.assertEqual([], condition_errors({"ci.yml": text}))
+
+    def test_an_undecidable_condition_stays_in_scope(self) -> None:
+        """The heart of D1. An exemption nobody can evaluate is not an exemption.
+
+        `env.SOMETHING` is decided at run time, by a value this code cannot see.
+        Reading that as "cannot run on a pull request" would turn the perimeter
+        into an opt-out anyone can write in one line.
+        """
+        text = self.workflow("    if: ${{ env.SOMETHING == 'x' }}\n")
+        errors = condition_errors({"ci.yml": text})
+        self.assertEqual(2, len(errors), errors)
+
+    def test_an_or_that_puts_pull_request_back_stays_in_scope(self) -> None:
+        """The containment trap, and why `||` ends the reading.
+
+        This condition contains `github.event_name == 'push'` verbatim and is
+        true on every pull request. Anything matching on containment exempts
+        exactly the job it must not.
+        """
+        text = self.workflow(
+            "    if: ${{ github.event_name == 'push' || "
+            "github.event_name == 'pull_request' }}\n"
+        )
+        errors = condition_errors({"ci.yml": text})
+        self.assertEqual(2, len(errors), errors)
+
+    def test_an_or_binding_looser_than_and_stays_in_scope(self) -> None:
+        """Why `||` ends the reading instead of being split around.
+
+        `a || b && c` is `a || (b && c)`: in GitHub's expression syntax `&&`
+        binds tighter, so this job runs on a pull request whenever
+        `env.PUBLISH` is `yes`. Split the text on `&&` and the second piece is
+        the exempting form, character for character — the conjunct reasoning is
+        sound only once nothing above it is a disjunction, which is what the
+        bail-out buys. Delete it and this test is the one that says so.
+        """
+        text = self.workflow(
+            "    if: ${{ env.PUBLISH == 'yes' || "
+            "github.ref == 'refs/heads/main' && github.event_name == 'push' }}\n"
+        )
+        errors = condition_errors({"ci.yml": text})
+        self.assertEqual(2, len(errors), errors)
+
+    def test_only_the_exempt_job_is_exempt(self) -> None:
+        """Per job, not per file: the gates job beside it is still checked."""
+        text = (
+            "on:\n"
+            "  pull_request:\n"
+            "  push:\n"
+            "    branches:\n"
+            "      - main\n"
+            "jobs:\n"
+            "  governance:\n"
+            "    steps:\n"
+            "      - name: Check out\n"
+            "        uses: actions/checkout@abc\n"
+            "      - name: A gate\n"
+            "        run: python3 tools/quality/verify_public_content.py\n"
+            "  publish:\n"
+            "    if: github.event_name == 'push'\n"
+            "    steps:\n"
+            "      - name: Check out\n"
+            "        uses: actions/checkout@abc\n"
+            "      - name: Record the digest\n"
+            "        run: echo $DIGEST >> digests.txt\n"
+        )
+        errors = condition_errors({"ci.yml": text})
+        self.assertEqual(1, len(errors), errors)
+        self.assertIn("A gate", errors[0])
+
+    IN_SCOPE = (
+        # No condition at all: the job runs on every trigger, pull_request
+        # among them.
+        None,
+        "",
+        # True on a pull request, so plainly in scope.
+        "github.event_name == 'pull_request'",
+        "${{ github.event_name == 'pull_request' && !github.event.pull_request.draft }}",
+        # Undecidable here, therefore in scope.
+        "${{ env.SOMETHING == 'x' }}",
+        "${{ vars.PUBLISH == 'yes' && github.ref == 'refs/heads/main' }}",
+        "${{ github.ref == 'refs/heads/main' }}",
+        "${{ needs.build.result == 'success' }}",
+        # `||` and parentheses end the reading rather than being approximated.
+        "github.event_name == 'push' || github.event_name == 'pull_request'",
+        # `a || b && c` is `a || (b && c)`, so this is true on a pull request
+        # whenever the first half is — and splitting the text on `&&` yields
+        # the exempting form exactly.
+        "${{ env.PUBLISH == 'yes' || github.ref == 'refs/heads/main' "
+        "&& github.event_name == 'push' }}",
+        "${{ (github.event_name == 'push') }}",
+        "${{ !(github.event_name == 'pull_request') }}",
+        # Not the recognised spelling. It happens to mean the same thing, and
+        # "happens to" is not a basis for dropping a job from a check.
+        "'push' == github.event_name",
+        # A whole conjunct is what is matched, not a substring of one. This
+        # code does not read `!`, so a conjunct wearing one is a conjunct it
+        # has not understood. It is also the case that separates the two
+        # readings: search the text for the comparison and this is exempt.
+        "!github.event_name == 'push'",
+        # A `!=` against something that is not pull_request excludes nothing.
+        "github.event_name != 'push'",
+        # Text around the expression, not an expression.
+        "runner ${{ github.event_name == 'push' }} yes",
+    )
+
+    OUT_OF_SCOPE = (
+        "github.event_name == 'push'",
+        "${{ github.event_name == 'push' }}",
+        '${{ github.event_name == "push" }}',
+        "github.event_name == 'push' && github.ref == 'refs/heads/main'",
+        "${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}",
+        "github.event_name != 'pull_request'",
+        "${{ github.event_name == 'schedule' }}",
+        "${{ github.event_name == 'workflow_dispatch' }}",
+        # A false conjunct cannot be recovered by the ones around it, however
+        # unreadable they are.
+        "${{ env.SOMETHING == 'x' && github.event_name == 'push' }}",
+    )
+
+    def test_the_predicate_reads_each_form_as_intended(self) -> None:
+        for condition in self.IN_SCOPE:
+            job: dict[str, object] = {} if condition is None else {"if": condition}
+            with self.subTest(scope="in", condition=condition):
+                self.assertTrue(verify.job_can_run_on_a_pull_request(job))
+        for condition in self.OUT_OF_SCOPE:
+            with self.subTest(scope="out", condition=condition):
+                self.assertFalse(verify.job_can_run_on_a_pull_request({"if": condition}))
+
+
 class TheRealWorkflows(unittest.TestCase):
     """The rule against what is committed, and the proof that it can fail.
 
@@ -978,6 +1175,11 @@ class TheRealWorkflows(unittest.TestCase):
             here = [
                 step
                 for job in verify.jobs_of(document).values()
+                # The same perimeter the check itself uses. Without this the
+                # test would demand a condition on a step the check has stopped
+                # asking about, and the first push-only job added here would
+                # turn it red for agreeing with the rule.
+                if verify.job_can_run_on_a_pull_request(job)
                 for _, step, _ in verify.steps_that_must_say_when_they_run(job)
             ]
             self.assertGreater(
@@ -1006,8 +1208,18 @@ class TheSharedBlock(unittest.TestCase):
     repositories, and the verifier states its hash in a comment.
 
     That claim had nothing behind it, which is how the folded-scalar fix came to
-    exist in two of the four copies and not the other two: a divergence nobody
-    could see. Here it is a failing test.
+    exist in two of the five copies and be missing from the other three: a
+    divergence nobody could see. Here it is a failing test.
+
+    This sentence used to say "two of the four copies and not the other two",
+    contradicting the block's own account of the same event a few hundred lines
+    away. The block is right, and it is checkable rather than a matter of
+    recollection: at the end of the first round, `parse_block_scalar` folded
+    with spaces in mylabella-console (3541d14) and platform-mylabella-vps
+    (8c9e17e), and joined with newlines in this repository (5262925),
+    agentic-development-template (b50cfbc) and RicettediMarilena (c667657).
+    Two, three. Which is a small thing to have got wrong, and exactly the kind
+    of thing the hash below exists to stop being a matter of recollection.
 
     This asserts the hash the file itself states, not a constant duplicated in
     this file, so there is one place to update when the block legitimately
@@ -1061,6 +1273,7 @@ class TheSharedBlock(unittest.TestCase):
             b"structural_problems",
             b"workflow_documents",
             b"pull_request_workflows",
+            b"job_can_run_on_a_pull_request",
             b"gate_named_in",
             b"dependency_ids",
             b"steps_that_must_say_when_they_run",

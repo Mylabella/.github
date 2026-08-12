@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Check this public repository: what it publishes, and that its gates can speak.
 
-Two rules live here, because this repository has one verifier.
+Three rules live here, because this repository has one verifier, and they are
+numbered below in the order they are stated.
 
 The first is the one the README states: never add hostnames, addresses, file
 system paths, secret names, credentials, infrastructure topology, or anything
@@ -24,6 +25,14 @@ Which steps those are is one sentence, and it is the same sentence in all five
 repositories: **a step runs a gate when it runs a script — when it has a `run:`
 key** — and a `uses:` step joins it when another step names it as a dependency,
 unless it is the job's first step. See steps_that_must_say_when_they_run().
+
+Which *jobs* those steps have to be in is job_can_run_on_a_pull_request(). A job
+a pull request can never start cannot silence a gate on one, so it is outside
+the rule; a job condition this code cannot decide is inside it, because an
+exemption nobody can evaluate would be an opt-out anyone could write in one
+line. This repository has no exempt job today — its single workflow has a single
+job with no `if:` of its own — and the function is here because it is in the
+shared block, where it is load-bearing for the siblings that do.
 
 The third rule is about this file. Everything the second rule rests on — the
 YAML subset and the definition above — is a shared block copied byte for byte
@@ -197,7 +206,7 @@ def load_gates() -> list[dict[str, object]]:
 #
 # and it must print
 #
-#     c46129130707d1cbc106ba07e220647245158d601c54dec1d6924c52883d1e4d
+#     96e628812dbe745b7d66a8b5fe069a631a64743d47275d7113bf37553cebc4d5
 #
 # The file name is the only thing that differs, and it is written out here,
 # outside the block, precisely so that the block itself stays byte-identical: a
@@ -286,6 +295,15 @@ ANCHOR_OR_ALIAS = re.compile(r"^[&*][A-Za-z0-9_][A-Za-z0-9_-]*(\s|$)")
 # `steps.<id>.` inside a condition — the way one step declares that it depends
 # on another. Used to find the steps something behind them depends on.
 DEPENDENCY = re.compile(r"steps\.([A-Za-z_][A-Za-z0-9_-]*)\.")
+
+# `github.event_name == 'push'` and `github.event_name != 'pull_request'`: the
+# only two shapes of a job condition job_can_run_on_a_pull_request() claims to
+# understand. Anchored at both ends on purpose — a trailing bracket, a second
+# comparison or anything else around it means something is going on that this
+# regular expression is not reading, and then the job keeps its obligations.
+EVENT_NAME_TEST = re.compile(
+    r"^github\.event_name\s*(==|!=)\s*(['\"])([A-Za-z_][A-Za-z0-9_]*)\2$"
+)
 
 
 class UnsupportedWorkflow(Exception):
@@ -787,6 +805,77 @@ def pull_request_workflows() -> tuple[dict[Path, dict[str, object]], list[str]]:
     return {path: documents[path] for path in sorted(selected)}, problems
 
 
+def job_can_run_on_a_pull_request(job: dict[str, object]) -> bool:
+    """Whether a `pull_request` event could reach this job's steps at all.
+
+    The perimeter of check_gate_conditions is the jobs a pull request can
+    actually run, and this is the second half of it: pull_request_workflows()
+    picks the files, this picks the jobs inside them.
+
+    **Why a job can be outside it.** A job GitHub will never start on a pull
+    request cannot silence a gate on one, and asking it for `!cancelled()` is
+    not merely noise — it is wrong on the merits. mylabella-console's `publish`
+    job carries `if: github.event_name == 'push' && github.ref ==
+    'refs/heads/main'`, and inside it the sequence build -> read the digest the
+    image will report -> record that digest is precisely the case where the
+    order *is* the point and stopping at the first failure is correct: reading a
+    digest after a failed build reads a stale one, and recording it publishes a
+    lie. That is the same exemption release and deploy already have one level
+    up, in pull_request_workflows(); this grants it one level down, on the same
+    grounds, to a job a pull request cannot reach.
+
+    **Decidable, or in scope.** Exactly one form is read: a condition with no
+    parentheses and no `||`, one of whose `&&` conjuncts is literally
+    `github.event_name == '<event>'` for an event other than pull_request, or
+    `github.event_name != 'pull_request'`. Such a condition is false on every
+    pull request whatever else it says, because a false conjunct cannot be
+    recovered by the conjuncts around it. That is the whole of what this
+    function knows.
+
+    **Everything it cannot judge stays in scope.** This is the half that keeps
+    the rule from becoming its own escape hatch, and it is worth being explicit
+    about: an exemption is a way to stop being checked, so an unreadable
+    exemption must not work. `if: ${{ env.SOMETHING == 'x' }}` is a condition
+    nothing here can evaluate, so the job wearing it keeps every obligation it
+    had. `||` and parentheses end the reading rather than being approximated,
+    because `github.event_name == 'push' || github.event_name ==
+    'pull_request'` contains the exempting text verbatim and is true on a pull
+    request — a reader that matched on containment would exempt exactly the job
+    it must not. Failing closed here costs one `!cancelled()` on a job that did
+    not need it; failing open costs a silenced gate nobody is told about.
+
+    This decides whose *steps* are checked. It deliberately does not prune the
+    reusable workflows pull_request_workflows() follows: a called file can have
+    a second caller, and keeping it in scope errs towards checking more.
+    """
+    raw = job.get("if")
+    if not isinstance(raw, str) or not raw.strip():
+        # No condition is not an exemption: the job runs on every event the
+        # workflow is triggered by, and one of them is pull_request.
+        return True
+
+    condition = raw.strip()
+    if condition.startswith("${{") and condition.endswith("}}"):
+        condition = condition[3:-2].strip()
+    if "${{" in condition or "}}" in condition:
+        # An expression spliced into surrounding text, or more than one of them.
+        # Not something to take apart with str.split.
+        return True
+    if "||" in condition or "(" in condition or ")" in condition:
+        return True
+
+    for conjunct in condition.split("&&"):
+        match = EVENT_NAME_TEST.match(conjunct.strip())
+        if match is None:
+            continue
+        operator, _, event = match.groups()
+        if operator == "==" and event != "pull_request":
+            return False
+        if operator == "!=" and event == "pull_request":
+            return False
+    return True
+
+
 def blocking_commands() -> dict[str, str]:
     """command -> gate id, for the gates the registry declares blocking."""
     return {
@@ -916,10 +1005,13 @@ def check_gate_conditions(errors: list[str]) -> None:
     workflows set `cancel-in-progress`, and under `always()` a job already
     replaced by a newer push keeps working.
 
-    Which steps are in scope is steps_that_must_say_when_they_run(). The
-    registry is consulted only to name the gate in the message, so a registry
-    that will not load costs a good error message and nothing else — the
-    perimeter no longer depends on it.
+    The perimeter is three decisions, each in its own function so that each can
+    be read and argued with on its own: pull_request_workflows() picks the
+    files, job_can_run_on_a_pull_request() drops the jobs a pull request cannot
+    reach, and steps_that_must_say_when_they_run() picks the steps. The registry
+    is consulted only to name the gate in the message, so a registry that will
+    not load costs a good error message and nothing else — the perimeter no
+    longer depends on it.
     """
     try:
         commands = blocking_commands()
@@ -934,6 +1026,8 @@ def check_gate_conditions(errors: list[str]) -> None:
     for path, document in documents.items():
         relative = under_root(path)
         for job_name, job in jobs_of(document).items():
+            if not job_can_run_on_a_pull_request(job):
+                continue
             for position, step, why in steps_that_must_say_when_they_run(job):
                 if "cancelled()" in str(step.get("if", "")):
                     continue
