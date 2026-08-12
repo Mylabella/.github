@@ -128,6 +128,15 @@ Keep pull requests focused and reviewable. A pull request over 1000 hand-written
 lines is refused; lockfiles, generated clients, and fixtures do not count towards
 that number.
 
+That is a gate and not a hope: `tools/quality/check_diff_size.py` counts the
+lines a change adds against its base and fails the pull request over the limit.
+What does not count is read back out of the base branch's `.gitattributes`
+rather than from a list kept here, and out of the base's copy on purpose — a
+change that could declare its own payload generated would be writing the rule it
+is measured by. Deleted lines do not count either: dead code is removed in the
+change that stops using it, and a gate that refuses a large deletion argues with
+that rule and loses.
+
 Every pull request must explain:
 
 - the user or operational outcome;

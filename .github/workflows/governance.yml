@@ -21,9 +21,37 @@ jobs:
 
     steps:
       - name: Check out repository
+        # `fetch-depth: 0` is here for the size gate below and for nothing else.
+        # The default is a single commit, and against a checkout of one commit
+        # the diff with the base is empty, so the gate reports "this change is
+        # small" — the one answer a size gate must never give wrongly, and it
+        # gives it silently, on the largest pull request of the year.
+        id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
+
+      - name: Check the size of the change
+        # A pull request over 1000 hand-written added lines is refused, which
+        # CONTRIBUTING has said for as long as it has existed with nothing
+        # behind it. This repository was the last of the five without the gate,
+        # and it showed: a 2200-line change reached it in one piece because
+        # nothing here could count.
+        #
+        # Its own step, rather than a line inside another one, because a gate
+        # sharing a step with a second gate reports one verdict for two
+        # objections. It reads the tree, so the checkout is a real dependency
+        # and is named; `!cancelled()` because a size objection is independent
+        # of every other one and has to be heard on the same push.
+        #
+        # BASE_SHA is what GitHub recorded for the pull request. On a push there
+        # is none, and the script falls back to the merge base with origin/main.
+        id: diff-size
+        if: ${{ !cancelled() && steps.checkout.outcome == 'success' }}
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: python3 tools/quality/check_diff_size.py
 
       - name: Check the published content
         # This repository is public and sets policy for private ones. Its
