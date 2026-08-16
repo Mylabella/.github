@@ -25,22 +25,36 @@ never disclose suspected vulnerabilities publicly.
 
 ## Branching
 
-- `main` must remain releasable at all times. Protect it wherever the plan
-  allows; where branch protection is unavailable, a repository that deploys from
-  `main` is expected to refuse a commit that no reviewed pull request produced.
-- Create a short-lived `feature/<description>`, `fix/<description>`, or
-  `chore/<description>` branch. Those three are the entire list. A tool's
-  default branch name is not an exception to it, and neither is an agent's.
-- Never push to `main`, including while working alone.
-- Open a pull request for every change, including changes made while working
-  alone.
-- Update the branch before merge when required by repository rules.
-- Use squash merge. The pull-request title becomes the durable commit message,
-  so write it as one.
-- Delete merged branches.
+Two branches are permanent. **`main` is what has been released** and must stay
+releasable at all times. **`develop` is where finished work waits for the next
+release.** Neither is ever pushed to directly, including while working alone;
+organization rules refuse it and a repository that deploys also refuses to act
+on a commit no reviewed pull request produced.
 
-Release branches are not part of the default workflow. Create one only when a
-supported version must be stabilized or maintained independently.
+- Everyday work starts from `develop`, on a short-lived
+  `feature/<description>`, `fix/<description>` or `chore/<description>` branch,
+  and its pull request goes back into `develop`.
+- Promotion happens on a `release/<component>-vX.Y.Z` branch, and repair of
+  something already released on a `hotfix/<component>-vX.Y.Z` branch. Both carry
+  a component **and** a version: `release/console` says nothing about which
+  release, and `release/v1.2.3` is a tag's name rather than a branch's.
+- Those five prefixes are the entire list. A tool's default branch name is not
+  an exception to it, and neither is an agent's.
+- Open a pull request for every change, including changes made while working
+  alone. Update the branch before merge when repository rules require it.
+- **Squash merge into `develop`.** The pull-request title becomes the durable
+  commit message, so write it as one.
+- **Merge commit into `main`, never squash.** A squashed promotion writes a
+  commit `main` does not share with `develop`, so the two stop being related and
+  the next merge between them conflicts with work that is already in both. The
+  merge commit is also what lets a deploy prove its own provenance: it is the
+  commit a pull request based on `main` produced, and that is the question the
+  release guards ask.
+- **After a hotfix reaches `main`, merge `main` back into `develop` in the same
+  sitting.** Whoever merged the hotfix owns this. Nothing checks it, and it is
+  the one step whose omission is silent: `develop` simply stops containing a fix
+  that is live, and the next release quietly removes it.
+- Delete merged branches.
 
 ## Do not stack pull requests
 
