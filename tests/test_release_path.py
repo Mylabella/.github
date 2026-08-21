@@ -48,7 +48,7 @@ def into_main(head: str) -> tuple[int, str]:
     )
 
 
-class OnlyAReleaseOrAHotfixEntersMain(unittest.TestCase):
+class OnlyAReleaseAHotfixOrDevelopEntersMain(unittest.TestCase):
     def test_a_release_branch_is_entitled(self) -> None:
         code, output = into_main("release/console-v1.2.3")
         self.assertEqual(0, code, output)
@@ -62,15 +62,19 @@ class OnlyAReleaseOrAHotfixEntersMain(unittest.TestCase):
         self.assertEqual(1, code)
         self.assertIn("may not merge into main", output)
 
-    def test_develop_itself_is_refused(self) -> None:
-        """The promotion this organization used to do, and no longer may.
+    def test_develop_itself_is_allowed(self) -> None:
+        """The deliberate deviation, and the reason it is in a test.
 
-        `develop -> main` is how the release reached `main` here until the rule
-        was tightened; under strict GitFlow the release gets a branch, so that
-        there is something to name, tag and revert.
+        Promoting `develop` straight into `main` skips the release branch and
+        the thing it buys — a name to tag, a place to stabilise, a unit to
+        revert. On a small project shipped directly to a client that ceremony
+        buys nothing, and the maintainer takes the short road on purpose. This
+        gate exists for the *other* case, a feature that never went through
+        `develop` at all, so the short road is asserted here rather than left to
+        be rediscovered the first time somebody ships.
         """
         code, output = into_main("develop")
-        self.assertEqual(1, code)
+        self.assertEqual(0, code, output)
 
     def test_the_refusal_says_where_the_work_should_go(self) -> None:
         _, output = into_main("fix/una-riparazione")

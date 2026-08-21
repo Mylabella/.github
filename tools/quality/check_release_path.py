@@ -1,12 +1,19 @@
 #!/usr/bin/env python3
 """Refuse work that reaches `main` without passing through `develop`.
 
-Strict GitFlow has one road into `main` and it is not the one most pull requests
-take by default. Work lands on `develop`; `main` receives a stable release from a
-`release/` branch, or an urgent repair from a `hotfix/` branch. A feature merged
-straight into `main` is not a shortcut — it is a commit `develop` does not have,
-so the next release silently reverts it, and every branch cut from `develop`
-meanwhile is built on a tree that is missing it.
+Work lands on `develop`. `main` receives a stable release from a `release/`
+branch, an urgent repair from a `hotfix/` branch, or `develop` itself. A feature
+merged straight into `main` is none of those: it is a commit `develop` does not
+have, so the next release silently reverts it, and every branch cut from
+`develop` meanwhile is built on a tree that is missing it.
+
+`develop` is on the list deliberately, and it is the one place this is looser
+than the textbook. Promoting `develop` straight into `main` skips the release
+branch, which costs the thing a release branch buys — a name to tag, a place to
+stabilise, something to revert as a unit. On a small project shipped directly to
+a client that ceremony buys nothing, and the maintainer uses the short road on
+purpose. What this gate is for is the *other* case: a feature that never went
+through `develop` at all.
 
 Nothing prevented this. GitHub offers no ruleset rule for "which branches may
 open a pull request into this one": a ruleset can require a check, require a
@@ -50,9 +57,13 @@ from output import speak_utf8  # noqa: E402 - the import path is set immediately
 MAIN = "main"
 DEVELOP = "develop"
 
-#: The two prefixes entitled to enter `main`. Not a grammar — the grammar is
+#: The prefixes entitled to enter `main`. Not a grammar — the grammar is
 #: `check_branch_name.py`'s — just the entrance list.
-ENTITLED = ("release/", "hotfix/")
+ENTITLED_PREFIXES = ("release/", "hotfix/")
+
+#: And the one whole branch name entitled to, which is a different shape: there
+#: is exactly one `develop` and it has no suffix to match.
+ENTITLED_BRANCHES = (DEVELOP,)
 
 
 def event() -> str:
@@ -97,22 +108,22 @@ def main() -> int:
         )
         return 2
 
-    if head.startswith(ENTITLED):
+    if head in ENTITLED_BRANCHES or head.startswith(ENTITLED_PREFIXES):
         print(f"{head} is entitled to enter {MAIN}")
         return 0
 
     print(f"error: '{head}' may not merge into {MAIN}", file=sys.stderr)
     print(
         f"Work goes to {DEVELOP}. {MAIN} receives a stable release from "
-        f"release/<component>-vX.Y.Z, or an urgent repair from "
-        f"hotfix/<component>-vX.Y.Z, and nothing else.",
+        f"release/<component>-vX.Y.Z, an urgent repair from "
+        f"hotfix/<component>-vX.Y.Z, or {DEVELOP} itself, and nothing else.",
         file=sys.stderr,
     )
     print(
         f"Retarget this pull request at {DEVELOP} — the base can be changed on "
         f"an open pull request without closing it, unlike a rename. If this "
-        f"really is a release, cut a release/ branch from {DEVELOP} and open it "
-        f"from there.",
+        f"really is a release, promote {DEVELOP} itself, or cut a release/ "
+        f"branch from it when the version needs a name to tag.",
         file=sys.stderr,
     )
     return 1
