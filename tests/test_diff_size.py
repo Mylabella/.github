@@ -154,44 +154,44 @@ def measure(
 
 
 class Boundary(unittest.TestCase):
-    def test_the_threshold_falls_between_1000_and_1001(self) -> None:
-        """The rule refuses a pull request *over* 1000, so 1000 is the last size
+    def test_the_threshold_falls_between_4000_and_4001(self) -> None:
+        """The rule refuses a pull request *over* 4000, so 4000 is the last size
         that passes. Which side of a threshold the boundary falls on is the
         detail everyone assumes and nobody states."""
-        for count, expected in ((999, 0), (1000, 0), (1001, 1)):
+        for count, expected in ((3999, 0), (4000, 0), (4001, 1)):
             with self.subTest(count=count):
                 self.assertEqual(expected, measure({"docs/big.md": body(count)})[0])
 
     def test_a_refusal_names_the_count_the_threshold_and_the_file(self) -> None:
-        code, output = measure({"docs/big.md": body(1100)})
+        code, output = measure({"docs/big.md": body(4100)})
         self.assertEqual(1, code)
-        for expected in ("1100 hand-written lines added", "1000", "docs/big.md"):
+        for expected in ("4100 hand-written lines added", "4000", "docs/big.md"):
             self.assertIn(expected, output)
 
     def test_a_lockfile_of_any_size_is_not_a_review_burden(self) -> None:
         """The proof that matters: a gate that counts lockfiles is a gate that
         gets switched off the first time Dependabot opens a pull request."""
-        code, output = measure({"tools/pnpm-lock.yaml": body(1100)})
+        code, output = measure({"tools/pnpm-lock.yaml": body(4100)})
         self.assertEqual(0, code)
         self.assertIn("tools/pnpm-lock.yaml", output)
 
     def test_a_lockfile_does_not_buy_room_for_hand_written_lines(self) -> None:
         """The excluded half is excluded; the counted half is still counted."""
         code, output = measure(
-            {"docs/big.md": body(1001), "tools/pnpm-lock.yaml": body(500)}
+            {"docs/big.md": body(4001), "tools/pnpm-lock.yaml": body(500)}
         )
         self.assertEqual(1, code)
-        self.assertIn("1001 hand-written lines added", output)
+        self.assertIn("4001 hand-written lines added", output)
 
     def test_an_undeterminable_base_exits_2_rather_than_passing(self) -> None:
         """Exit 0 here would report success for a measurement never made."""
-        code, output = measure({"docs/big.md": body(1100)}, base="deadbeef" * 5)
+        code, output = measure({"docs/big.md": body(4100)}, base="deadbeef" * 5)
         self.assertEqual(2, code)
         self.assertIn("cannot determine the base", output)
 
 
 class TheChangeCannotWriteTheRuleItIsMeasuredBy(unittest.TestCase):
-    """A pull request that appends one line to `.gitattributes` exempted 1100
+    """A pull request that appends one line to `.gitattributes` exempted 4100
     hand-written lines at a declared cost of 1. `git check-attr` reads the
     checkout, and in CI the checkout is the head, so the change was resolving
     its own exclusions. The attributes are now resolved against the base."""
@@ -200,20 +200,20 @@ class TheChangeCannotWriteTheRuleItIsMeasuredBy(unittest.TestCase):
 
     def test_a_change_cannot_declare_its_own_payload_generated(self) -> None:
         code, output = measure(
-            {"docs/benchmark.md": body(1100)},
+            {"docs/benchmark.md": body(4100)},
             head_attributes=ATTRIBUTES + self.SELF_EXEMPTION,
         )
         self.assertEqual(1, code, output)
-        # 1101: the 1100 lines, plus the line that tried to excuse them.
-        self.assertIn("1101 hand-written lines added", output)
-        self.assertIn("1100  docs/benchmark.md", output)
+        # 4101: the 4100 lines, plus the line that tried to excuse them.
+        self.assertIn("4101 hand-written lines added", output)
+        self.assertIn("4100  docs/benchmark.md", output)
         self.assertNotIn("benchmark.md: the base's .gitattributes", output)
 
     def test_an_exclusion_the_base_already_declared_still_holds(self) -> None:
         """The other direction, or the fix is "ignore .gitattributes", which
         would count every lockfile and get the gate switched off."""
         code, output = measure(
-            {"docs/benchmark.md": body(1100)},
+            {"docs/benchmark.md": body(4100)},
             attributes=ATTRIBUTES + self.SELF_EXEMPTION,
         )
         self.assertEqual(0, code, output)
@@ -222,19 +222,19 @@ class TheChangeCannotWriteTheRuleItIsMeasuredBy(unittest.TestCase):
 
 class DeletedLinesAreNotAReviewBurden(unittest.TestCase):
     """Added lines only. The org rule is that dead code is removed in the change
-    that stops using it; a gate refusing an 1100-line deletion fights that rule,
+    that stops using it; a gate refusing a 4100-line deletion fights that rule,
     and the author who meets it once leaves the dead code where it is."""
 
     def test_a_large_deletion_passes(self) -> None:
         code, output = measure(
-            before={"docs/gone.md": body(1100), "docs/keep.md": "x\n"},
+            before={"docs/gone.md": body(4100), "docs/keep.md": "x\n"},
             removed=("docs/gone.md",),
         )
         self.assertEqual(0, code, output)
         self.assertIn("0 hand-written line(s) added", output)
 
     def test_a_large_addition_is_still_refused(self) -> None:
-        self.assertEqual(1, measure({"docs/big.md": body(1100)})[0])
+        self.assertEqual(1, measure({"docs/big.md": body(4100)})[0])
 
     def test_a_rewrite_is_counted_by_what_it_adds(self) -> None:
         """300 added over 800 deleted is 300, which is the number of lines
@@ -260,15 +260,15 @@ class AMoveIsNotSomethingToRead(unittest.TestCase):
         self.assertIn("0 hand-written line(s) added", output)
 
     def test_a_move_that_also_rewrites_counts_what_it_adds(self) -> None:
-        """Rename detection is not an exemption: the move is free, the 1001 new
+        """Rename detection is not an exemption: the move is free, the 4001 new
         lines inside it are not."""
         code, output = measure(
-            {"docs/elsewhere.md": body(2000) + body(1001, first=10_000)},
-            before={"docs/moved.md": body(2000)},
+            {"docs/elsewhere.md": body(8000) + body(4001, first=10_000)},
+            before={"docs/moved.md": body(8000)},
             removed=("docs/moved.md",),
         )
         self.assertEqual(1, code, output)
-        self.assertIn("1001 hand-written lines added", output)
+        self.assertIn("4001 hand-written lines added", output)
 
 
 class ExclusionsAreDerived(unittest.TestCase):

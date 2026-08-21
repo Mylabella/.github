@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Refuse a pull request that is too large to review.
 
-The organization's CONTRIBUTING: *a pull request over 1000 hand-written lines is
+The organization's CONTRIBUTING: *a pull request over 4000 hand-written lines is
 refused; lockfiles, generated clients and fixtures do not count.* Added lines
 only — the org rule that dead code is removed in the change that stops using it
-is one a gate refusing a 900-line deletion would fight.
+is one a gate refusing a 3900-line deletion would fight.
 
 Every exclusion is read back out of a fact the repository already states rather
 than transcribed: a hand-typed list is what made an earlier detector in this
@@ -29,12 +29,16 @@ from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# Over this many is refused; exactly this many passes. The rule says "over 1000".
-# Raised from 400 on 2026-08-08 by the maintainer, deliberately and against the
-# standing preference not to widen a rule to match practice: three consecutive
-# pull requests had breached 400. The number lives here and in CONTRIBUTING, and
-# tests/test_diff_size.py pins the boundary so the two cannot drift apart in silence.
-THRESHOLD = 1000
+# Over this many is refused; exactly this many passes. The rule says "over 4000".
+# Raised from 400 to 1000 on 2026-08-08, and from 1000 to 4000 on 2026-08-21, both
+# times by the maintainer and both times against the standing preference not to
+# widen a rule to match practice. That preference is why each raise is written
+# down here as a decision with a date rather than a number quietly edged up the
+# first time something did not fit: a threshold nobody remembers agreeing to is
+# one nobody can disagree with either. The number lives here and in CONTRIBUTING,
+# and tests/test_diff_size.py pins the boundary so the two cannot drift apart in
+# silence.
+THRESHOLD = 4000
 
 # `.lock` covers uv, poetry, Cargo, Gemfile, yarn, composer and flake;
 # `-lock.json` and `-lock.yaml` cover npm and pnpm. The three that fit neither
