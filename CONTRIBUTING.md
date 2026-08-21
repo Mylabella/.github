@@ -138,9 +138,15 @@ by merging the pull request that opened it.
 
 ## Pull requests
 
-Keep pull requests focused and reviewable. A pull request over 1000 hand-written
+Keep pull requests focused and reviewable. A pull request over 4000 hand-written
 lines is refused; lockfiles, generated clients, and fixtures do not count towards
 that number.
+
+Raised from 400 to 1000 on 2026-08-08 and from 1000 to 4000 on 2026-08-21, both
+times deliberately. It is no longer the same number as the one under *Who
+merges*: that one is about how much a person may land without asking, this one is
+about how much anybody can be expected to read, and they were only ever equal by
+coincidence of history.
 
 That is a gate and not a hope: `tools/quality/check_diff_size.py` counts the
 lines a change adds against its base and fails the pull request over the limit.

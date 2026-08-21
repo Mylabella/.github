@@ -63,6 +63,10 @@ jobs:
         # A gate nobody has verified is a gate nobody should trust. These tests
         # already caught one pattern that silently matched nothing.
         run: python3 -m unittest discover -s tests
+      - name: Only a release or a hotfix enters main
+        if: ${{ !cancelled() && steps.checkout.outcome == 'success' }}
+        run: python3 tools/quality/check_release_path.py
+
 
       - name: Check the branch name
         # CONTRIBUTING allows feature/, fix/ and chore/ and nothing else. The
