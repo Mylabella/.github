@@ -173,6 +173,29 @@ is measured by. Deleted lines do not count either: dead code is removed in the
 change that stops using it, and a gate that refuses a large deletion argues with
 that rule and loses.
 
+Which base, and it is not always the branch the pull request targets. A pull
+request into `main` is measured against `develop`: every line already on
+`develop` was counted when it entered `develop`, where a pull request is
+required too, and a promotion is not a second review of the same lines.
+Measured against `main` it would carry the sum of every feature since the last
+release — a number that grows without bound and refuses the one pull request
+GitFlow exists to produce. On 2026-08-25 that was not hypothetical: three
+repositories could not promote at all, at 29285, 18207 and 4270 hand-written
+lines, and a fourth had shipped its promotion as two halves that left `main` in
+a state that was never a release. The limit did not move; the question did.
+
+What reaches `main` without passing `develop` is still counted in full, and that
+is the case the rule is for: a hotfix is measured by exactly what it adds, so
+aiming a pull request at `main` is not a way of putting unreviewed lines there.
+Between a hotfix landing and its back-merge the next hotfix is charged for both,
+which is a false alarm whose remedy — the back-merge — was owed anyway.
+
+The base branch is read by name and the merge base computed on the spot, rather
+than taken from what GitHub recorded when the pull request was opened.
+`pull_request.base.sha` is frozen at that moment and does not move when the base
+branch does, so a pull request left open while other work lands is charged for
+that work.
+
 Every pull request must explain:
 
 - the user or operational outcome;
