@@ -164,7 +164,11 @@ in the same change that stopped a promotion into `main` being measured against
 `main`, which is the pressure the first two were made under: a release that
 carried the sum of every feature since the last one made the number look like
 the thing in the way, and it never was. Choosing 6000 against a gate that had
-stopped lying about what it measures is the only honest moment to choose one. It is no longer the same number as the one under *Who
+stopped lying about what it measures is the only honest moment to choose one. The number itself was agreed with Andrea on
+2026-08-25 and is provisional: whether this limit survives at all is under
+discussion. That is recorded rather than left implicit, because a threshold with
+no reason beside it is one nobody can argue with afterwards, and because
+"provisional" is the adjective that most reliably becomes permanent in silence. It is no longer the same number as the one under *Who
 merges*: that one is about how much a person may land without asking, this one is
 about how much anybody can be expected to read, and they were only ever equal by
 coincidence of history.

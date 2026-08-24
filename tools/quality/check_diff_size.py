@@ -52,6 +52,14 @@ ROOT = Path(__file__).resolve().parents[2]
 # 6000 was chosen against a gate that had stopped lying about what it measured,
 # which is the only honest moment to choose one.
 #
+# Why 6000 and not some other number: it was agreed with Andrea on 2026-08-25,
+# and it is provisional — whether this limit survives at all is under discussion
+# between them. Both halves of that are written down on purpose. A number with
+# no reason beside it is one nobody can argue with afterwards, and "provisional"
+# is the adjective that most reliably becomes permanent in silence. If the limit
+# goes, this comment is the record of what it was for; if it stays, whoever
+# proposes a fourth raise argues against this instead of against nothing.
+#
 # The number lives here and in CONTRIBUTING, and tests/test_diff_size.py pins
 # the boundary so the two cannot drift apart in silence.
 THRESHOLD = 6000
