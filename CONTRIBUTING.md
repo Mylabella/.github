@@ -42,14 +42,18 @@ on a commit no reviewed pull request produced.
   an exception to it, and neither is an agent's.
 - Open a pull request for every change, including changes made while working
   alone. Update the branch before merge when repository rules require it.
-- **Squash merge into `develop`.** The pull-request title becomes the durable
-  commit message, so write it as one.
-- **Merge commit into `main`, never squash.** A squashed promotion writes a
-  commit `main` does not share with `develop`, so the two stop being related and
-  the next merge between them conflicts with work that is already in both. The
-  merge commit is also what lets a deploy prove its own provenance: it is the
-  commit a pull request based on `main` produced, and that is the question the
-  release guards ask.
+- **Merge commit into `develop`.** Organization rules refuse a squash there, so
+  a branch arrives with its commits intact. Write the pull-request title as a
+  durable summary anyway: it becomes the merge commit's subject.
+- **On `main` a merge commit and a squash are both accepted, and the merge
+  commit is the one to reach for.** A squashed promotion writes a commit `main`
+  does not share with `develop`, so the two stop being related and the next
+  merge between them conflicts with work that is already in both. The merge
+  commit is also the one the release guards were measured against: it is the
+  commit a pull request based on `main` produced, and that is the question they
+  ask. What a squash on `main` does to those guards nobody has measured, so
+  squash there deliberately or not at all, and back-merge into `develop` in the
+  same sitting when you do.
 - **After a hotfix reaches `main`, merge `main` back into `develop` in the same
   sitting.** Whoever merged the hotfix owns this. Nothing checks it, and it is
   the one step whose omission is silent: `develop` simply stops containing a fix
@@ -63,8 +67,8 @@ Either make the two changes independent of each other, or finish and merge the
 first before opening the second.
 
 Stacking looks efficient and behaves badly under the workflow this document
-already requires. Squash merge replaces the branch's commits with one new
-commit on `main`, so when the base pull request merges, the stacked one is left
+already requires. A squash replaces the branch's commits with one new commit on
+the branch it targets, so when the base pull request merges, the stacked one is left
 pointing at a branch that no longer leads anywhere: **its changes silently do
 not reach `main`, and nothing reports this.** It has happened here, and it cost
 a recovery pull request to notice and undo.
@@ -90,6 +94,18 @@ triggers, stop and ask the maintainer instead of deciding:
   authorization path;
 - a new direct dependency;
 - a test deleted, skipped, or marked expected-to-fail.
+
+Merging into `main` is restricted to the maintain and admin roles: organization
+rules refuse the update itself from anyone below, so a contributor with write
+access prepares the promotion and a maintainer performs it. Merging into
+`develop` follows the repository's own permissions and nothing more.
+
+A repository that has a second person with write access also requires one
+approving review on both permanent branches. That requirement is set per
+repository rather than organization-wide on purpose: GitHub never lets an author
+approve their own pull request, and it does not count an approval from an
+account with only read access, so imposing one where nobody eligible exists does
+not raise the bar — it stops every merge.
 
 The boundary is the measurement, not the identity. A rule that says the
 maintainer merges is satisfied by every merge the maintainer performs, including
@@ -180,8 +196,8 @@ author remains accountable for the entire contribution and must:
   to share to an external model or service.
 
 Do not attribute authorship to a tool. No co-author trailer, no generated-with
-footer, and no standing disclosure section in the pull-request body: under squash
-merge that body becomes the commit message, so a line that is true of every
+footer, and no standing disclosure section in the pull-request body: where a pull
+request is squashed that body becomes the commit message, so a line that is true of every
 change would be recorded forever on every change while informing nobody. The
 accountability is the point, and the checklist carries it.
 
