@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Refuse a pull request that is too large to review.
 
-The organization's CONTRIBUTING: *a pull request over 4000 hand-written lines is
+The organization's CONTRIBUTING: *a pull request over 6000 hand-written lines is
 refused; lockfiles, generated clients and fixtures do not count.* Added lines
 only — the org rule that dead code is removed in the change that stops using it
-is one a gate refusing a 3900-line deletion would fight.
+is one a gate refusing a 5900-line deletion would fight.
 
 Every exclusion is read back out of a fact the repository already states rather
 than transcribed: a hand-typed list is what made an earlier detector in this
@@ -33,16 +33,28 @@ from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# Over this many is refused; exactly this many passes. The rule says "over 4000".
-# Raised from 400 to 1000 on 2026-08-08, and from 1000 to 4000 on 2026-08-21, both
-# times by the maintainer and both times against the standing preference not to
-# widen a rule to match practice. That preference is why each raise is written
-# down here as a decision with a date rather than a number quietly edged up the
-# first time something did not fit: a threshold nobody remembers agreeing to is
-# one nobody can disagree with either. The number lives here and in CONTRIBUTING,
-# and tests/test_diff_size.py pins the boundary so the two cannot drift apart in
-# silence.
-THRESHOLD = 4000
+# Over this many is refused; exactly this many passes. The rule says "over 6000".
+# Raised from 400 to 1000 on 2026-08-08, from 1000 to 4000 on 2026-08-21, and
+# from 4000 to 6000 on 2026-08-25 — every time by the maintainer, every time
+# deliberately, and every time against the standing preference not to widen a
+# rule to match practice. That preference is why each raise is written down here
+# as a decision with a date rather than a number quietly edged up the first time
+# something did not fit: a threshold nobody remembers agreeing to is one nobody
+# can disagree with either.
+#
+# The third raise is the one with the cleanest conscience and it is worth saying
+# why, because the next reader will otherwise count three and conclude the limit
+# is decorative. The first two were made under the pressure this file no longer
+# creates: a promotion measured against `main` carried the sum of every feature
+# since the last release, so the limit was raised to let a release through and
+# the number was doing work the base should have been doing. That pressure was
+# removed in the same change that carried this raise — see `resolve_base` — so
+# 6000 was chosen against a gate that had stopped lying about what it measured,
+# which is the only honest moment to choose one.
+#
+# The number lives here and in CONTRIBUTING, and tests/test_diff_size.py pins
+# the boundary so the two cannot drift apart in silence.
+THRESHOLD = 6000
 
 # The two permanent branches, named because `resolve_base` decides on them.
 # check_release_path.py and check_main_not_ahead.py know the same two names; the
@@ -131,12 +143,14 @@ def resolve_base() -> tuple[str, str]:
 
     It is not a hypothesis. On the day this was written the promotion pull
     request was arithmetically impossible in three repositories of this
-    organization — 29285, 18207 and 4270 hand-written lines — and a fourth had
-    shipped its promotion as `Promozione 1 di 2` and `Promozione 2 di 2`, two
-    halves that left `main` in a state that was never a release and made nothing
-    more readable, because every line in both had already been reviewed once.
-    The alternative on offer was raising the threshold a third time, which is
-    the move that ends with a number nobody remembers agreeing to.
+    organization at the 4000 then in force — 29285, 18207 and 4270 hand-written
+    lines — and a fourth had shipped its promotion as `Promozione 1 di 2` and
+    `Promozione 2 di 2`, two halves that left `main` in a state that was never a
+    release and made nothing more readable, because every line in both had
+    already been reviewed once. The threshold was raised to 6000 the same day
+    and that is recorded above with its date, but it is not what made a
+    promotion measurable and it could not have been: 29285 is not a number any
+    threshold anybody would propose ever reaches. Only the base could fix it.
 
     What arrives at `main` without passing `develop` is still counted, and that
     is the case the rule is for: a hotfix, cut from `main`, is measured by

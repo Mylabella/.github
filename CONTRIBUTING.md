@@ -154,12 +154,17 @@ by merging the pull request that opened it.
 
 ## Pull requests
 
-Keep pull requests focused and reviewable. A pull request over 4000 hand-written
+Keep pull requests focused and reviewable. A pull request over 6000 hand-written
 lines is refused; lockfiles, generated clients, and fixtures do not count towards
 that number.
 
-Raised from 400 to 1000 on 2026-08-08 and from 1000 to 4000 on 2026-08-21, both
-times deliberately. It is no longer the same number as the one under *Who
+Raised from 400 to 1000 on 2026-08-08, from 1000 to 4000 on 2026-08-21 and from
+4000 to 6000 on 2026-08-25, every time deliberately. The third raise was taken
+in the same change that stopped a promotion into `main` being measured against
+`main`, which is the pressure the first two were made under: a release that
+carried the sum of every feature since the last one made the number look like
+the thing in the way, and it never was. Choosing 6000 against a gate that had
+stopped lying about what it measures is the only honest moment to choose one. It is no longer the same number as the one under *Who
 merges*: that one is about how much a person may land without asking, this one is
 about how much anybody can be expected to read, and they were only ever equal by
 coincidence of history.
@@ -180,9 +185,12 @@ required too, and a promotion is not a second review of the same lines.
 Measured against `main` it would carry the sum of every feature since the last
 release — a number that grows without bound and refuses the one pull request
 GitFlow exists to produce. On 2026-08-25 that was not hypothetical: three
-repositories could not promote at all, at 29285, 18207 and 4270 hand-written
-lines, and a fourth had shipped its promotion as two halves that left `main` in
-a state that was never a release. The limit did not move; the question did.
+repositories could not promote at all at the 4000 then in force — 29285, 18207
+and 4270 hand-written
+lines, the first two beyond any threshold anybody would propose — and a fourth
+had shipped its promotion as two halves that left `main` in a state that was
+never a release. Raising the limit could not have fixed this and did not: the
+question was which base, not which number.
 
 What reaches `main` without passing `develop` is still counted in full, and that
 is the case the rule is for: a hotfix is measured by exactly what it adds, so

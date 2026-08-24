@@ -173,44 +173,44 @@ def measure(
 
 
 class Boundary(unittest.TestCase):
-    def test_the_threshold_falls_between_4000_and_4001(self) -> None:
-        """The rule refuses a pull request *over* 4000, so 4000 is the last size
+    def test_the_threshold_falls_between_6000_and_6001(self) -> None:
+        """The rule refuses a pull request *over* 6000, so 6000 is the last size
         that passes. Which side of a threshold the boundary falls on is the
         detail everyone assumes and nobody states."""
-        for count, expected in ((3999, 0), (4000, 0), (4001, 1)):
+        for count, expected in ((5999, 0), (6000, 0), (6001, 1)):
             with self.subTest(count=count):
                 self.assertEqual(expected, measure({"docs/big.md": body(count)})[0])
 
     def test_a_refusal_names_the_count_the_threshold_and_the_file(self) -> None:
-        code, output = measure({"docs/big.md": body(4100)})
+        code, output = measure({"docs/big.md": body(6100)})
         self.assertEqual(1, code)
-        for expected in ("4100 hand-written lines added", "4000", "docs/big.md"):
+        for expected in ("6100 hand-written lines added", "6000", "docs/big.md"):
             self.assertIn(expected, output)
 
     def test_a_lockfile_of_any_size_is_not_a_review_burden(self) -> None:
         """The proof that matters: a gate that counts lockfiles is a gate that
         gets switched off the first time Dependabot opens a pull request."""
-        code, output = measure({"tools/pnpm-lock.yaml": body(4100)})
+        code, output = measure({"tools/pnpm-lock.yaml": body(6100)})
         self.assertEqual(0, code)
         self.assertIn("tools/pnpm-lock.yaml", output)
 
     def test_a_lockfile_does_not_buy_room_for_hand_written_lines(self) -> None:
         """The excluded half is excluded; the counted half is still counted."""
         code, output = measure(
-            {"docs/big.md": body(4001), "tools/pnpm-lock.yaml": body(500)}
+            {"docs/big.md": body(6001), "tools/pnpm-lock.yaml": body(500)}
         )
         self.assertEqual(1, code)
-        self.assertIn("4001 hand-written lines added", output)
+        self.assertIn("6001 hand-written lines added", output)
 
     def test_an_undeterminable_base_exits_2_rather_than_passing(self) -> None:
         """Exit 0 here would report success for a measurement never made."""
-        code, output = measure({"docs/big.md": body(4100)}, base="deadbeef" * 5)
+        code, output = measure({"docs/big.md": body(6100)}, base="deadbeef" * 5)
         self.assertEqual(2, code)
         self.assertIn("cannot determine the base", output)
 
 
 class TheChangeCannotWriteTheRuleItIsMeasuredBy(unittest.TestCase):
-    """A pull request that appends one line to `.gitattributes` exempted 4100
+    """A pull request that appends one line to `.gitattributes` exempted 6100
     hand-written lines at a declared cost of 1. `git check-attr` reads the
     checkout, and in CI the checkout is the head, so the change was resolving
     its own exclusions. The attributes are now resolved against the base."""
@@ -219,20 +219,20 @@ class TheChangeCannotWriteTheRuleItIsMeasuredBy(unittest.TestCase):
 
     def test_a_change_cannot_declare_its_own_payload_generated(self) -> None:
         code, output = measure(
-            {"docs/benchmark.md": body(4100)},
+            {"docs/benchmark.md": body(6100)},
             head_attributes=ATTRIBUTES + self.SELF_EXEMPTION,
         )
         self.assertEqual(1, code, output)
-        # 4101: the 4100 lines, plus the line that tried to excuse them.
-        self.assertIn("4101 hand-written lines added", output)
-        self.assertIn("4100  docs/benchmark.md", output)
+        # 6101: the 6100 lines, plus the line that tried to excuse them.
+        self.assertIn("6101 hand-written lines added", output)
+        self.assertIn("6100  docs/benchmark.md", output)
         self.assertNotIn("benchmark.md: the base's .gitattributes", output)
 
     def test_an_exclusion_the_base_already_declared_still_holds(self) -> None:
         """The other direction, or the fix is "ignore .gitattributes", which
         would count every lockfile and get the gate switched off."""
         code, output = measure(
-            {"docs/benchmark.md": body(4100)},
+            {"docs/benchmark.md": body(6100)},
             attributes=ATTRIBUTES + self.SELF_EXEMPTION,
         )
         self.assertEqual(0, code, output)
@@ -241,19 +241,19 @@ class TheChangeCannotWriteTheRuleItIsMeasuredBy(unittest.TestCase):
 
 class DeletedLinesAreNotAReviewBurden(unittest.TestCase):
     """Added lines only. The org rule is that dead code is removed in the change
-    that stops using it; a gate refusing a 4100-line deletion fights that rule,
+    that stops using it; a gate refusing a 6100-line deletion fights that rule,
     and the author who meets it once leaves the dead code where it is."""
 
     def test_a_large_deletion_passes(self) -> None:
         code, output = measure(
-            before={"docs/gone.md": body(4100), "docs/keep.md": "x\n"},
+            before={"docs/gone.md": body(6100), "docs/keep.md": "x\n"},
             removed=("docs/gone.md",),
         )
         self.assertEqual(0, code, output)
         self.assertIn("0 hand-written line(s) added", output)
 
     def test_a_large_addition_is_still_refused(self) -> None:
-        self.assertEqual(1, measure({"docs/big.md": body(4100)})[0])
+        self.assertEqual(1, measure({"docs/big.md": body(6100)})[0])
 
     def test_a_rewrite_is_counted_by_what_it_adds(self) -> None:
         """300 added over 800 deleted is 300, which is the number of lines
@@ -279,15 +279,15 @@ class AMoveIsNotSomethingToRead(unittest.TestCase):
         self.assertIn("0 hand-written line(s) added", output)
 
     def test_a_move_that_also_rewrites_counts_what_it_adds(self) -> None:
-        """Rename detection is not an exemption: the move is free, the 4001 new
+        """Rename detection is not an exemption: the move is free, the 6001 new
         lines inside it are not."""
         code, output = measure(
-            {"docs/elsewhere.md": body(8000) + body(4001, first=10_000)},
+            {"docs/elsewhere.md": body(8000) + body(6001, first=10_000)},
             before={"docs/moved.md": body(8000)},
             removed=("docs/moved.md",),
         )
         self.assertEqual(1, code, output)
-        self.assertIn("4001 hand-written lines added", output)
+        self.assertIn("6001 hand-written lines added", output)
 
 
 def step(
@@ -382,7 +382,7 @@ class APromotionIsNotASecondReview(unittest.TestCase):
 
     What has *not* been read once already is still counted, and every case below
     ending in a refusal is there to keep that true: this must not become a way
-    of putting 4001 unreviewed lines on `main` by aiming at it.
+    of putting 6001 unreviewed lines on `main` by aiming at it.
     """
 
     TRIVIAL = {"docs/nota.md": "una riga"}
@@ -390,7 +390,7 @@ class APromotionIsNotASecondReview(unittest.TestCase):
     def test_a_promotion_of_reviewed_work_counts_nothing(self) -> None:
         code, output = history(
             step("develop", "develop", cut_from="main",
-                 files={"backend/feature.py": body(4100)}),
+                 files={"backend/feature.py": body(6100)}),
             head="develop", target="main",
         )
         self.assertEqual(0, code, output)
@@ -400,7 +400,7 @@ class APromotionIsNotASecondReview(unittest.TestCase):
         """The one line anyone reads when the number surprises them."""
         _, output = history(
             step("develop", "develop", cut_from="main",
-                 files={"backend/feature.py": body(4100)}),
+                 files={"backend/feature.py": body(6100)}),
             head="develop", target="main",
         )
         self.assertIn("develop: this pull request promotes into main", output)
@@ -411,17 +411,17 @@ class APromotionIsNotASecondReview(unittest.TestCase):
         code, output = history(
             step("develop", "develop", cut_from="main", files=self.TRIVIAL),
             step("hotfix", "hotfix/x", cut_from="main",
-                 files={"backend/urgente.py": body(4001)}),
+                 files={"backend/urgente.py": body(6001)}),
             head="hotfix", target="main",
         )
         self.assertEqual(1, code, output)
-        self.assertIn("4001 hand-written lines added", output)
+        self.assertIn("6001 hand-written lines added", output)
 
     def test_a_hotfix_at_the_boundary_passes(self) -> None:
         code, output = history(
             step("develop", "develop", cut_from="main", files=self.TRIVIAL),
             step("hotfix", "hotfix/x", cut_from="main",
-                 files={"backend/urgente.py": body(4000)}),
+                 files={"backend/urgente.py": body(6000)}),
             head="hotfix", target="main",
         )
         self.assertEqual(0, code, output)
@@ -430,7 +430,7 @@ class APromotionIsNotASecondReview(unittest.TestCase):
         """The stabilisation commits, and not the release they stabilise."""
         code, output = history(
             step("develop", "develop", cut_from="main",
-                 files={"backend/feature.py": body(4100)}),
+                 files={"backend/feature.py": body(6100)}),
             step("release", "release/app-v1.0.0", cut_from="develop",
                  files={"backend/versione.py": body(10)}),
             head="release", target="main",
@@ -443,11 +443,11 @@ class APromotionIsNotASecondReview(unittest.TestCase):
         rather than less. Every fallback in `resolve_base` goes that way."""
         code, output = history(
             step("head", "fix/x", cut_from="main",
-                 files={"backend/grande.py": body(4100)}),
+                 files={"backend/grande.py": body(6100)}),
             head="head", target="main",
         )
         self.assertEqual(1, code, output)
-        self.assertIn("4100 hand-written lines added", output)
+        self.assertIn("6100 hand-written lines added", output)
 
     def test_a_main_left_ahead_is_charged_to_the_next_hotfix(self) -> None:
         """The false alarm, stated rather than discovered.
@@ -460,13 +460,13 @@ class APromotionIsNotASecondReview(unittest.TestCase):
         """
         code, output = history(
             step("develop", "develop", cut_from="main", files=self.TRIVIAL),
-            step("primo", "main", files={"backend/primo.py": body(3000)}),
+            step("primo", "main", files={"backend/primo.py": body(4000)}),
             step("secondo", "hotfix/y", cut_from="main",
-                 files={"backend/secondo.py": body(1500)}),
+                 files={"backend/secondo.py": body(2500)}),
             head="secondo", target="main",
         )
         self.assertEqual(1, code, output)
-        self.assertIn("4500 hand-written lines added", output)
+        self.assertIn("6500 hand-written lines added", output)
 
     def test_a_base_that_moved_under_an_open_pull_request_is_followed(self) -> None:
         """`pull_request.base.sha` is frozen when the pull request is opened, and
@@ -480,7 +480,7 @@ class APromotionIsNotASecondReview(unittest.TestCase):
             step("prima", "develop", cut_from="main", files=self.TRIVIAL),
             step("mio", "feature/x", cut_from="develop",
                  files={"backend/mio.py": body(10)}),
-            step("dopo", "develop", files={"backend/altrui.py": body(4100)}),
+            step("dopo", "develop", files={"backend/altrui.py": body(6100)}),
             step("aggiornato", "feature/x", merge="develop"),
             head="aggiornato", target="develop", frozen="prima",
         )
@@ -494,7 +494,7 @@ class APromotionIsNotASecondReview(unittest.TestCase):
         code, output = history(
             step("prima", "develop", cut_from="main", files=self.TRIVIAL),
             step("mio", "feature/x", cut_from="develop",
-                 files={"backend/mio.py": body(4001)}),
+                 files={"backend/mio.py": body(6001)}),
             head="mio", target="", frozen="prima",
         )
         self.assertEqual(1, code, output)
