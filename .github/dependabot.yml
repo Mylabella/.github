@@ -4,8 +4,17 @@ updates:
   # The governance workflow pins its action by commit SHA, which is what makes
   # it immutable and also what makes it go stale silently. This turns the
   # update into a reviewed pull request instead of a decision nobody makes.
+  #
+  # Monthly, and grouped. This repository holds one workflow, so weekly was
+  # asking a question whose answer changes a few times a year — and a pinned SHA
+  # does not become dangerous a week after its successor ships, it becomes
+  # stale. A month of staleness arrives as one more line in the same pull
+  # request instead of as a second pull request.
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+      interval: monthly
+    open-pull-requests-limit: 2
+    groups:
+      github-actions:
+        patterns: ["*"]
