@@ -236,6 +236,20 @@ request is squashed that body becomes the commit message, so a line that is true
 change would be recorded forever on every change while informing nobody. The
 accountability is the point, and the checklist carries it.
 
+Saying so is not enough, and this paragraph is the evidence: it was here, it was
+stated plainly, and the trailers arrived anyway for weeks, because the tool added
+them on its own and nobody reads every commit message. Turn them off at the
+source. In Claude Code that is `"attribution": {"commit": "", "pr": ""}` in the
+repository's `.claude/settings.json` — committed, so it reaches every clone and
+every cloud session, which a setting in a home directory reaches neither of.
+
+Check the identity as well as the message, because it is the half that gets
+missed: a cloud session sets `user.name` and `user.email` to the agent in the
+*global* git config, so its commits are authored by a tool however clean the
+message is. Set them per repository to the person who owns the work, or set
+`GIT_AUTHOR_NAME`, `GIT_AUTHOR_EMAIL`, `GIT_COMMITTER_NAME` and
+`GIT_COMMITTER_EMAIL` on the environment once.
+
 Generated output is evidence to inspect, not proof that a change is correct.
 
 ## Dependencies
