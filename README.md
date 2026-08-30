@@ -10,6 +10,7 @@ organization repositories that do not provide a local version.
 | --- | --- |
 | [`profile/README.md`](profile/README.md) | Public organization profile |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Contribution and engineering workflow |
+| [`AGENTS.md`](AGENTS.md) | Operating contract for coding agents |
 | [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) | Community participation standards |
 | [`SECURITY.md`](SECURITY.md) | Private vulnerability reporting |
 | [`SUPPORT.md`](SUPPORT.md) | Routing for bugs, questions, and proposals |
