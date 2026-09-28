@@ -42,14 +42,18 @@ on a commit no reviewed pull request produced.
   an exception to it, and neither is an agent's.
 - Open a pull request for every change, including changes made while working
   alone. Update the branch before merge when repository rules require it.
-- **Squash merge into `develop`.** The pull-request title becomes the durable
-  commit message, so write it as one.
-- **Merge commit into `main`, never squash.** A squashed promotion writes a
-  commit `main` does not share with `develop`, so the two stop being related and
-  the next merge between them conflicts with work that is already in both. The
-  merge commit is also what lets a deploy prove its own provenance: it is the
-  commit a pull request based on `main` produced, and that is the question the
-  release guards ask.
+- **Merge commit into `develop`.** Organization rules refuse a squash there, so
+  a branch arrives with its commits intact. Write the pull-request title as a
+  durable summary anyway: it becomes the merge commit's subject.
+- **On `main` a merge commit and a squash are both accepted, and the merge
+  commit is the one to reach for.** A squashed promotion writes a commit `main`
+  does not share with `develop`, so the two stop being related and the next
+  merge between them conflicts with work that is already in both. The merge
+  commit is also the one the release guards were measured against: it is the
+  commit a pull request based on `main` produced, and that is the question they
+  ask. What a squash on `main` does to those guards nobody has measured, so
+  squash there deliberately or not at all, and back-merge into `develop` in the
+  same sitting when you do.
 - **After a hotfix reaches `main`, merge `main` back into `develop` in the same
   sitting.** Whoever merged the hotfix owns this. Nothing checks it, and it is
   the one step whose omission is silent: `develop` simply stops containing a fix
@@ -63,8 +67,8 @@ Either make the two changes independent of each other, or finish and merge the
 first before opening the second.
 
 Stacking looks efficient and behaves badly under the workflow this document
-already requires. Squash merge replaces the branch's commits with one new
-commit on `main`, so when the base pull request merges, the stacked one is left
+already requires. A squash replaces the branch's commits with one new commit on
+the branch it targets, so when the base pull request merges, the stacked one is left
 pointing at a branch that no longer leads anywhere: **its changes silently do
 not reach `main`, and nothing reports this.** It has happened here, and it cost
 a recovery pull request to notice and undo.
@@ -90,6 +94,18 @@ triggers, stop and ask the maintainer instead of deciding:
   authorization path;
 - a new direct dependency;
 - a test deleted, skipped, or marked expected-to-fail.
+
+Merging into `main` is restricted to the maintain and admin roles: organization
+rules refuse the update itself from anyone below, so a contributor with write
+access prepares the promotion and a maintainer performs it. Merging into
+`develop` follows the repository's own permissions and nothing more.
+
+A repository that has a second person with write access also requires one
+approving review on both permanent branches. That requirement is set per
+repository rather than organization-wide on purpose: GitHub never lets an author
+approve their own pull request, and it does not count an approval from an
+account with only read access, so imposing one where nobody eligible exists does
+not raise the bar — it stops every merge.
 
 The boundary is the measurement, not the identity. A rule that says the
 maintainer merges is satisfied by every merge the maintainer performs, including
@@ -138,9 +154,24 @@ by merging the pull request that opened it.
 
 ## Pull requests
 
-Keep pull requests focused and reviewable. A pull request over 1000 hand-written
+Keep pull requests focused and reviewable. A pull request over 6000 hand-written
 lines is refused; lockfiles, generated clients, and fixtures do not count towards
 that number.
+
+Raised from 400 to 1000 on 2026-08-08, from 1000 to 4000 on 2026-08-21 and from
+4000 to 6000 on 2026-08-25, every time deliberately. The third raise was taken
+in the same change that stopped a promotion into `main` being measured against
+`main`, which is the pressure the first two were made under: a release that
+carried the sum of every feature since the last one made the number look like
+the thing in the way, and it never was. Choosing 6000 against a gate that had
+stopped lying about what it measures is the only honest moment to choose one. The number itself was agreed with Andrea on
+2026-08-25 and is provisional: whether this limit survives at all is under
+discussion. That is recorded rather than left implicit, because a threshold with
+no reason beside it is one nobody can argue with afterwards, and because
+"provisional" is the adjective that most reliably becomes permanent in silence. It is no longer the same number as the one under *Who
+merges*: that one is about how much a person may land without asking, this one is
+about how much anybody can be expected to read, and they were only ever equal by
+coincidence of history.
 
 That is a gate and not a hope: `tools/quality/check_diff_size.py` counts the
 lines a change adds against its base and fails the pull request over the limit.
@@ -150,6 +181,32 @@ change that could declare its own payload generated would be writing the rule it
 is measured by. Deleted lines do not count either: dead code is removed in the
 change that stops using it, and a gate that refuses a large deletion argues with
 that rule and loses.
+
+Which base, and it is not always the branch the pull request targets. A pull
+request into `main` is measured against `develop`: every line already on
+`develop` was counted when it entered `develop`, where a pull request is
+required too, and a promotion is not a second review of the same lines.
+Measured against `main` it would carry the sum of every feature since the last
+release — a number that grows without bound and refuses the one pull request
+GitFlow exists to produce. On 2026-08-25 that was not hypothetical: three
+repositories could not promote at all at the 4000 then in force — 29285, 18207
+and 4270 hand-written
+lines, the first two beyond any threshold anybody would propose — and a fourth
+had shipped its promotion as two halves that left `main` in a state that was
+never a release. Raising the limit could not have fixed this and did not: the
+question was which base, not which number.
+
+What reaches `main` without passing `develop` is still counted in full, and that
+is the case the rule is for: a hotfix is measured by exactly what it adds, so
+aiming a pull request at `main` is not a way of putting unreviewed lines there.
+Between a hotfix landing and its back-merge the next hotfix is charged for both,
+which is a false alarm whose remedy — the back-merge — was owed anyway.
+
+The base branch is read by name and the merge base computed on the spot, rather
+than taken from what GitHub recorded when the pull request was opened.
+`pull_request.base.sha` is frozen at that moment and does not move when the base
+branch does, so a pull request left open while other work lands is charged for
+that work.
 
 Every pull request must explain:
 
@@ -174,10 +231,24 @@ author remains accountable for the entire contribution and must:
   to share to an external model or service.
 
 Do not attribute authorship to a tool. No co-author trailer, no generated-with
-footer, and no standing disclosure section in the pull-request body: under squash
-merge that body becomes the commit message, so a line that is true of every
+footer, and no standing disclosure section in the pull-request body: where a pull
+request is squashed that body becomes the commit message, so a line that is true of every
 change would be recorded forever on every change while informing nobody. The
 accountability is the point, and the checklist carries it.
+
+Saying so is not enough, and this paragraph is the evidence: it was here, it was
+stated plainly, and the trailers arrived anyway for weeks, because the tool added
+them on its own and nobody reads every commit message. Turn them off at the
+source. In Claude Code that is `"attribution": {"commit": "", "pr": ""}` in the
+repository's `.claude/settings.json` — committed, so it reaches every clone and
+every cloud session, which a setting in a home directory reaches neither of.
+
+Check the identity as well as the message, because it is the half that gets
+missed: a cloud session sets `user.name` and `user.email` to the agent in the
+*global* git config, so its commits are authored by a tool however clean the
+message is. Set them per repository to the person who owns the work, or set
+`GIT_AUTHOR_NAME`, `GIT_AUTHOR_EMAIL`, `GIT_COMMITTER_NAME` and
+`GIT_COMMITTER_EMAIL` on the environment once.
 
 Generated output is evidence to inspect, not proof that a change is correct.
 
