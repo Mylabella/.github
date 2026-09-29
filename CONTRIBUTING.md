@@ -219,6 +219,43 @@ Every pull request must explain:
 Draft pull requests are welcome for early feedback, but they must not be used to
 bypass proposal or security discussions.
 
+## Where a job runs
+
+A workflow job runs on one of three kinds of machine, and which one is a rule
+rather than a taste, because the wrong answer is not an error: a job whose
+labels match no runner is queued for 24 hours while its pull request cannot
+merge, with no log and no notification.
+
+- **GitHub's runners** take anything that holds a write credential — a release,
+  a deployment, a registry push, a smoke test of production — and every job of a
+  public repository, this one included.
+- **The organization's runner** takes the governance class only: a checkout and
+  checks that read the repository. It serves production, so it has no container
+  runtime and cannot install system packages. A job asks for it by reading an
+  organization variable, never by naming a label.
+- **The local runner** takes the rest of a private repository's pull-request CI:
+  service containers, image builds, browsers. Each job runs in a virtual machine
+  that is deleted when the job ends, on a machine that serves no production and
+  can reach nothing private. A job asks for it like this:
+
+  ```yaml
+  runs-on: ${{ github.event.repository.private && fromJSON(vars.CI_RUNS_ON_LOCAL || '"ubuntu-latest"') || 'ubuntu-latest' }}
+  ```
+
+  The first clause sends the job back to GitHub's runners the day its
+  repository becomes public, without anyone editing the workflow that day. The
+  variable is the break-glass: set to `"ubuntu-latest"`, or deleted, it sends
+  every such job back at its next run.
+
+Both self-hosted runners admit private repositories only, and that setting is
+the one thing standing between a fork's pull request and a machine this
+organization owns. It is never turned on.
+
+`check_runner_classification.py`, in every repository that carries the
+template's gates, refuses a job that asks for a runner it cannot run on, and a
+public repository's job that asks for a self-hosted runner without the guard
+above.
+
 ## AI-assisted contributions
 
 AI tools may assist with research, code, tests, or documentation. The human
