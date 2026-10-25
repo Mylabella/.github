@@ -63,10 +63,6 @@ jobs:
         # A gate nobody has verified is a gate nobody should trust. These tests
         # already caught one pattern that silently matched nothing.
         run: python3 -m unittest discover -s tests
-      - name: Only a release or a hotfix enters main
-        if: ${{ !cancelled() && steps.checkout.outcome == 'success' }}
-        run: python3 tools/quality/check_release_path.py
-
 
       - name: Check the branch name
         # CONTRIBUTING allows feature/, fix/ and chore/ and nothing else. The
@@ -87,20 +83,19 @@ jobs:
           case "$BRANCH" in
             dependabot/*)
               echo "$BRANCH is Dependabot's to name" ;;
-            main|develop)
-              # A promotion or a back-merge: the head is a permanent branch,
-              # which has no name to check and is never renamed. Without this
-              # arm GitFlow's own release pull request is the first thing this
-              # step refuses.
-              echo "$BRANCH is a permanent branch" ;;
+            main)
+              # The one permanent branch, which has no name to check and is
+              # never renamed. `develop`, `release/` and `hotfix/` went with
+              # GitFlow: a branch called develop is refused like any other.
+              echo "$BRANCH is the permanent branch" ;;
             *)
-              if echo "$BRANCH" | grep -qE '^((feature|fix|chore)/[a-z0-9]+(-[a-z0-9]+)*|(release|hotfix)/[a-z][a-z0-9]*(-[a-z0-9]+)*-v[0-9]+\.[0-9]+\.[0-9]+)$'; then
+              if echo "$BRANCH" | grep -qE '^(feature|fix|chore)/[a-z0-9]+(-[a-z0-9]+)*$'; then
                 echo "$BRANCH is a permitted branch name"
               else
                 echo "::error::'$BRANCH' is not a permitted branch name."
-                echo "Use feature/<description>, fix/<description> or chore/<description>"
-                echo "for everyday work, or release/<component>-vX.Y.Z and"
-                echo "hotfix/<component>-vX.Y.Z to promote and to repair."
+                echo "Use feature/<description>, fix/<description> or chore/<description>:"
+                echo "release/ and hotfix/ left with GitFlow, so a release is a tag on main"
+                echo "and an urgent repair is a fix/."
                 echo "Lowercase with hyphens. Rename the branch and the pull request follows it."
                 exit 1
               fi ;;
