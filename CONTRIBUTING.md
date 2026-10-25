@@ -25,40 +25,33 @@ never disclose suspected vulnerabilities publicly.
 
 ## Branching
 
-Two branches are permanent. **`main` is what has been released** and must stay
-releasable at all times. **`develop` is where finished work waits for the next
-release.** Neither is ever pushed to directly, including while working alone;
-organization rules refuse it and a repository that deploys also refuses to act
-on a commit no reviewed pull request produced.
+**`main` is the one permanent branch**, and it must stay releasable at all times.
+It is never pushed to directly, including while working alone; organization
+rules refuse it and a repository that deploys also refuses to act on a commit no
+reviewed pull request produced.
 
-- Everyday work starts from `develop`, on a short-lived
-  `feature/<description>`, `fix/<description>` or `chore/<description>` branch,
-  and its pull request goes back into `develop`.
-- Promotion happens on a `release/<component>-vX.Y.Z` branch, and repair of
-  something already released on a `hotfix/<component>-vX.Y.Z` branch. Both carry
-  a component **and** a version: `release/console` says nothing about which
-  release, and `release/v1.2.3` is a tag's name rather than a branch's.
-- Those five prefixes are the entire list. A tool's default branch name is not
-  an exception to it, and neither is an agent's.
+- Every change starts from `main`, on a short-lived `feature/<description>`,
+  `fix/<description>` or `chore/<description>` branch, and its pull request goes
+  back into `main`.
+- Those three prefixes are the entire list. A release is a tag on a commit of
+  `main` whose CI is green, and an urgent repair is a `fix/` like any other. A
+  tool's default branch name is not an exception to the list, and neither is an
+  agent's.
 - Open a pull request for every change, including changes made while working
   alone. Update the branch before merge when repository rules require it.
-- **Merge commit into `develop`.** Organization rules refuse a squash there, so
-  a branch arrives with its commits intact. Write the pull-request title as a
-  durable summary anyway: it becomes the merge commit's subject.
-- **On `main` a merge commit and a squash are both accepted, and the merge
-  commit is the one to reach for.** A squashed promotion writes a commit `main`
-  does not share with `develop`, so the two stop being related and the next
-  merge between them conflicts with work that is already in both. The merge
-  commit is also the one the release guards were measured against: it is the
-  commit a pull request based on `main` produced, and that is the question they
-  ask. What a squash on `main` does to those guards nobody has measured, so
-  squash there deliberately or not at all, and back-merge into `develop` in the
-  same sitting when you do.
-- **After a hotfix reaches `main`, merge `main` back into `develop` in the same
-  sitting.** Whoever merged the hotfix owns this. Nothing checks it, and it is
-  the one step whose omission is silent: `develop` simply stops containing a fix
-  that is live, and the next release quietly removes it.
+- **A merge commit, never a squash.** Organization rules refuse a squash on
+  `main`, so a branch arrives with its commits intact and under its author's
+  name. Write the pull-request title as a durable summary anyway: it becomes the
+  merge commit's subject.
+- **Merging is not deploying.** Nothing reaches production because it merged: a
+  deployment is a dispatch, or a tag, on a commit of `main` whose CI is green.
 - Delete merged branches.
+
+This organization ran GitFlow until October 2026, and a few repositories still
+do: a permanent `develop` beside `main`, everyday work into `develop`,
+`release/<component>-vX.Y.Z` and `hotfix/<component>-vX.Y.Z` into `main`, and a
+back-merge after every hotfix. Where a repository still does, its own
+`AGENTS.md` says so, and that is the rule there.
 
 ## Do not stack pull requests
 
@@ -95,13 +88,13 @@ triggers, stop and ask the maintainer instead of deciding:
 - a new direct dependency;
 - a test deleted, skipped, or marked expected-to-fail.
 
-Merging into `main` is restricted to the maintain and admin roles: organization
-rules refuse the update itself from anyone below, so a contributor with write
-access prepares the promotion and a maintainer performs it. Merging into
-`develop` follows the repository's own permissions and nothing more.
+Where an organization rule restricts merging into `main` to the maintain and
+admin roles, it refuses the update itself from anyone below: a contributor with
+write access prepares the pull request and a maintainer merges it. Repositories
+the rule excludes follow their own permissions and nothing more.
 
 A repository that has a second person with write access also requires one
-approving review on both permanent branches. That requirement is set per
+approving review on its permanent branches. That requirement is set per
 repository rather than organization-wide on purpose: GitHub never lets an author
 approve their own pull request, and it does not count an approval from an
 account with only read access, so imposing one where nobody eligible exists does
@@ -182,25 +175,11 @@ is measured by. Deleted lines do not count either: dead code is removed in the
 change that stops using it, and a gate that refuses a large deletion argues with
 that rule and loses.
 
-Which base, and it is not always the branch the pull request targets. A pull
-request into `main` is measured against `develop`: every line already on
-`develop` was counted when it entered `develop`, where a pull request is
-required too, and a promotion is not a second review of the same lines.
-Measured against `main` it would carry the sum of every feature since the last
-release — a number that grows without bound and refuses the one pull request
-GitFlow exists to produce. On 2026-08-25 that was not hypothetical: three
-repositories could not promote at all at the 4000 then in force — 29285, 18207
-and 4270 hand-written
-lines, the first two beyond any threshold anybody would propose — and a fourth
-had shipped its promotion as two halves that left `main` in a state that was
-never a release. Raising the limit could not have fixed this and did not: the
-question was which base, not which number.
-
-What reaches `main` without passing `develop` is still counted in full, and that
-is the case the rule is for: a hotfix is measured by exactly what it adds, so
-aiming a pull request at `main` is not a way of putting unreviewed lines there.
-Between a hotfix landing and its back-merge the next hotfix is charged for both,
-which is a false alarm whose remedy — the back-merge — was owed anyway.
+Which base: the branch the pull request goes into, which is `main`, and every
+pull request is measured by everything it adds. Under GitFlow a pull request
+into `main` was a promotion and was measured against `develop` instead, because
+what `develop` held had already been counted on the way in; that rule went with
+`develop`, and a branch of that name aimed at `main` earns no discount.
 
 The base branch is read by name and the merge base computed on the spot, rather
 than taken from what GitHub recorded when the pull request was opened.

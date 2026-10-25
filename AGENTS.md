@@ -18,9 +18,9 @@ byte for byte, delimited by `<!-- BEGIN organization contract -->`.
 the rule rather than an oversight to correct. `check_agents_contract.py` requires
 a repository to adopt the contract and the machinery together, or neither: the
 contract names the check that verifies each rule, and a rule whose detector is
-missing is a promise nothing keeps. Of the twelve files it requires, this
-repository has two — `tools/quality/check_release_path.py` and
-`.claude/settings.json`. The other ten are absent, and three of them
+missing is a promise nothing keeps. Of the ten files it requires, this
+repository has one, `.claude/settings.json`. The other nine are absent, and
+three of them
 (`check_migrations.py`, `check_contracts.py`, `check_adr_required.py`) have no
 subject here at all: this repository has no database, no committed contract and
 no decision log.
@@ -107,23 +107,18 @@ That setting governs what the tool appends. It does not reach the identity: a
 cloud session sets an agent's name and address in the *global* git config, so its
 commits are authored by a tool however clean the message is. Set `user.name` and
 `user.email` for this repository before the first commit. Nothing here checks it —
-`check_authorship.py` is one of the ten absent files — so it is on you.
+`check_authorship.py` is one of the nine absent files — so it is on you.
 
 ## Where a change goes, and how large
 
-Open the pull request against `develop`; `check_release_path.py` refuses anything
-reaching `main` that did not come from `release/`, `hotfix/` or `develop` itself.
-Merge into `develop` with a merge commit — organization rules refuse a squash
-there.
+Branch from `main` and open the pull request against `main`: it is the only
+permanent branch here, as in most of this organization (ADR 0003 of
+`agentic-development-template`). There is no `develop`, no release branch and no
+back-merge. Merge with a merge commit — organization rules refuse a squash.
 
 A pull request is refused above 6000 hand-written added lines by
-`check_diff_size.py`. Lockfiles, generated files and deletions do not count. A
-pull request into `main` is measured against `develop`, because a promotion
-carries nothing that was not already read on the way in.
-
-`check_main_not_ahead.py` is referenced by `check_diff_size.py` and is **not in
-this repository**. The invariant it enforces elsewhere — that `main` never holds
-work `develop` never received — is currently enforced here by nothing.
+`check_diff_size.py`. Lockfiles, generated files and deletions do not count.
+Every pull request is measured against `main`, by everything it adds.
 
 ## Before it is finished
 
@@ -133,7 +128,6 @@ Run what the pull request will run:
 python3 tools/quality/check_diff_size.py
 python3 tools/quality/verify_public_content.py
 python3 -m unittest discover -s tests
-python3 tools/quality/check_release_path.py
 ```
 
 The pull-request body follows `.github/pull_request_template.md`. This repository

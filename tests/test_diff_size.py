@@ -96,9 +96,9 @@ def stated(**named: str) -> dict[str, str]:
     the pull request running it is in `os.environ` — including `GITHUB_BASE_REF`,
     which `resolve_base` now reads. A case that inherited it would judge its own
     pull request instead of the repository it just built, and be green or red
-    for a reason with nothing to do with what it asserts. The same trap cost an
-    afternoon in tests/test_main_not_ahead.py before it was written down there,
-    which is the only reason it did not cost one here.
+    for a reason with nothing to do with what it asserts. The same trap had
+    already cost an afternoon in another gate's tests, which is the only reason
+    it did not cost one here.
     """
     inherited = {
         name: value
@@ -369,78 +369,17 @@ def history(
     return done.returncode, done.stdout + done.stderr
 
 
-class APromotionIsNotASecondReview(unittest.TestCase):
-    """A pull request into `main` is measured against `develop`.
+class EveryPullRequestIsMeasuredAgainstMain(unittest.TestCase):
+    """With one permanent branch, every pull request goes into `main` and is
+    measured by everything it adds (ADR 0003).
 
-    The limit is about how much anybody can be asked to read in one review. A
-    promotion carries nothing that was not read once already on the way into
-    `develop`, so measuring it against `main` returns the sum of every feature
-    since the last release — a number that grows without bound and refuses the
-    one pull request GitFlow exists to produce. Three repositories in this
-    organization were in exactly that state when this landed, and a fourth had
-    shipped its promotion in two halves to fit under the limit.
-
-    What has *not* been read once already is still counted, and every case below
-    ending in a refusal is there to keep that true: this must not become a way
-    of putting 6001 unreviewed lines on `main` by aiming at it.
+    While the organization ran GitFlow a pull request into `main` was a
+    promotion and was measured against `develop`. That answer went with the
+    branch: a `develop` left lying around must not become a way of putting 6001
+    unreviewed lines on `main` by pointing at it.
     """
 
-    TRIVIAL = {"docs/nota.md": "una riga"}
-
-    def test_a_promotion_of_reviewed_work_counts_nothing(self) -> None:
-        code, output = history(
-            step("develop", "develop", cut_from="main",
-                 files={"backend/feature.py": body(6100)}),
-            head="develop", target="main",
-        )
-        self.assertEqual(0, code, output)
-        self.assertIn("0 hand-written line(s) added", output)
-
-    def test_the_output_names_the_base_it_promoted_against(self) -> None:
-        """The one line anyone reads when the number surprises them."""
-        _, output = history(
-            step("develop", "develop", cut_from="main",
-                 files={"backend/feature.py": body(6100)}),
-            head="develop", target="main",
-        )
-        self.assertIn("develop: this pull request promotes into main", output)
-
-    def test_a_hotfix_is_measured_by_what_it_adds(self) -> None:
-        """The case the rule is for: a hotfix is cut from `main` and reaches it
-        without passing `develop`, so nothing has counted its lines yet."""
-        code, output = history(
-            step("develop", "develop", cut_from="main", files=self.TRIVIAL),
-            step("hotfix", "hotfix/x", cut_from="main",
-                 files={"backend/urgente.py": body(6001)}),
-            head="hotfix", target="main",
-        )
-        self.assertEqual(1, code, output)
-        self.assertIn("6001 hand-written lines added", output)
-
-    def test_a_hotfix_at_the_boundary_passes(self) -> None:
-        code, output = history(
-            step("develop", "develop", cut_from="main", files=self.TRIVIAL),
-            step("hotfix", "hotfix/x", cut_from="main",
-                 files={"backend/urgente.py": body(6000)}),
-            head="hotfix", target="main",
-        )
-        self.assertEqual(0, code, output)
-
-    def test_a_release_branch_is_measured_by_what_it_adds_to_develop(self) -> None:
-        """The stabilisation commits, and not the release they stabilise."""
-        code, output = history(
-            step("develop", "develop", cut_from="main",
-                 files={"backend/feature.py": body(6100)}),
-            step("release", "release/app-v1.0.0", cut_from="develop",
-                 files={"backend/versione.py": body(10)}),
-            head="release", target="main",
-        )
-        self.assertEqual(0, code, output)
-        self.assertIn("10 hand-written line(s) added", output)
-
-    def test_without_a_develop_branch_nothing_has_been_counted_anywhere(self) -> None:
-        """So the promotion rule does not apply, and the answer counts more
-        rather than less. Every fallback in `resolve_base` goes that way."""
+    def test_a_branch_into_main_counts_everything_it_adds(self) -> None:
         code, output = history(
             step("head", "fix/x", cut_from="main",
                  files={"backend/grande.py": body(6100)}),
@@ -449,24 +388,25 @@ class APromotionIsNotASecondReview(unittest.TestCase):
         self.assertEqual(1, code, output)
         self.assertIn("6100 hand-written lines added", output)
 
-    def test_a_main_left_ahead_is_charged_to_the_next_hotfix(self) -> None:
-        """The false alarm, stated rather than discovered.
-
-        Between a hotfix landing on `main` and its back-merge, `main` holds work
-        `develop` does not, and the next hotfix is measured against a `develop`
-        that is missing it. The remedy is the back-merge, which is correct
-        anyway — the same trade `check_main_not_ahead.py` documents, and the
-        reason that gate exists.
-        """
+    def test_a_develop_branch_earns_no_discount(self) -> None:
+        """The old promotion rule, refused: what a `develop` holds is still
+        counted when it is aimed at `main`."""
         code, output = history(
-            step("develop", "develop", cut_from="main", files=self.TRIVIAL),
-            step("primo", "main", files={"backend/primo.py": body(4000)}),
-            step("secondo", "hotfix/y", cut_from="main",
-                 files={"backend/secondo.py": body(2500)}),
-            head="secondo", target="main",
+            step("develop", "develop", cut_from="main",
+                 files={"backend/feature.py": body(6100)}),
+            head="develop", target="main",
         )
         self.assertEqual(1, code, output)
-        self.assertIn("6500 hand-written lines added", output)
+        self.assertIn("6100 hand-written lines added", output)
+        self.assertNotIn("promotes", output)
+
+    def test_at_the_boundary_it_passes(self) -> None:
+        code, output = history(
+            step("head", "fix/x", cut_from="main",
+                 files={"backend/urgente.py": body(6000)}),
+            head="head", target="main",
+        )
+        self.assertEqual(0, code, output)
 
     def test_a_base_that_moved_under_an_open_pull_request_is_followed(self) -> None:
         """`pull_request.base.sha` is frozen when the pull request is opened, and
@@ -477,12 +417,11 @@ class APromotionIsNotASecondReview(unittest.TestCase):
         base computed now; BASE_SHA is only the fallback.
         """
         code, output = history(
-            step("prima", "develop", cut_from="main", files=self.TRIVIAL),
-            step("mio", "feature/x", cut_from="develop",
+            step("mio", "feature/x", cut_from="main",
                  files={"backend/mio.py": body(10)}),
-            step("dopo", "develop", files={"backend/altrui.py": body(6100)}),
-            step("aggiornato", "feature/x", merge="develop"),
-            head="aggiornato", target="develop", frozen="prima",
+            step("dopo", "main", files={"backend/altrui.py": body(6100)}),
+            step("aggiornato", "feature/x", merge="main"),
+            head="aggiornato", target="main", frozen="main",
         )
         self.assertEqual(0, code, output)
         self.assertIn("10 hand-written line(s) added", output)
@@ -492,8 +431,8 @@ class APromotionIsNotASecondReview(unittest.TestCase):
         GITHUB_BASE_REF there is no branch to read, and BASE_SHA is what a local
         run and every other caller still gets."""
         code, output = history(
-            step("prima", "develop", cut_from="main", files=self.TRIVIAL),
-            step("mio", "feature/x", cut_from="develop",
+            step("prima", "fix/base", cut_from="main", files={"docs/nota.md": "una riga"}),
+            step("mio", "feature/x", cut_from="fix/base",
                  files={"backend/mio.py": body(6001)}),
             head="mio", target="", frozen="prima",
         )
