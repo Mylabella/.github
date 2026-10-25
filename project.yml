@@ -1,0 +1,17 @@
+# What this repository says about itself, read by the console every ten
+# minutes from the default branch. The schema lives in the console
+# (api/src/application/manifest.ts, described in docs/product/project-yml.md
+# there); `pnpm --dir api run manifest:validate <path>` in that repository
+# says whether the console would read this file.
+#
+# This repository is public: like every other file here, this one names no
+# host, address or secret.
+schema: 1
+owner: Nlabella
+criticality: bassa
+host: null
+restart:
+  runnable: false
+  reason: >-
+    file condivisi dell'organizzazione e il suo profilo, non gira niente;
+    GitHub li serve come default ai repository che non hanno i propri
